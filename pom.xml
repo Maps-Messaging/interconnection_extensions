@@ -12,6 +12,11 @@
     <modules>
         <module>pulsar-plugin</module>
     </modules>
+    <properties>
+        <maven.compiler.release>11</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
+    </properties>
 
     <distributionManagement>
         <snapshotRepository>
