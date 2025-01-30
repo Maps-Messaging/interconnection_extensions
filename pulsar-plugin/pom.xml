@@ -1,0 +1,52 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.mapsmessaging</groupId>
+        <artifactId>plugin-project</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>pulsar-plugin</artifactId>
+
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.apache.pulsar/pulsar-client -->
+        <dependency>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-client</artifactId>
+            <version>4.0.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>maps</artifactId>
+            <version>3.3.7-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>simple_logging</artifactId>
+            <version>2.0.13-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- JMS Selector logic module -->
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>jms_selector_parser</artifactId>
+            <version>ml-1.1.16-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>dynamic_storage</artifactId>
+            <version>2.4.13-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>
