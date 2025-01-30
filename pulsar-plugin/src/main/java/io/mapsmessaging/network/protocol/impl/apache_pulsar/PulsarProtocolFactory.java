@@ -30,7 +30,7 @@ import io.mapsmessaging.network.protocol.detection.NoOpDetection;
  * messaging servers that do not support open messaging protocols but do have
  * a java API that can be used to connect, subscribe and publish.
  *
- * This is not production ready, its a POC.
+ * This is not production ready, it's a POC.
  */
 public class PulsarProtocolFactory extends ProtocolImplFactory {
 
