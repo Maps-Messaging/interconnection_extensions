@@ -17,8 +17,6 @@
  */
 package io.mapsmessaging.network.protocol.impl.apache_pulsar;
 
-import io.mapsmessaging.api.*;
-import io.mapsmessaging.api.message.TypedData;
 import io.mapsmessaging.api.transformers.Transformer;
 import io.mapsmessaging.logging.Logger;
 import io.mapsmessaging.logging.LoggerFactory;
@@ -84,6 +82,7 @@ public class PulsarProtocol extends PluginProtocol implements MessageListener<by
     }
   }
 
+  @Override
   public void connect(String sessionId, String username, String password) throws IOException{
     try {
       doConnect(sessionId,username,password);
