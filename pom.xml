@@ -11,6 +11,7 @@
 
     <modules>
         <module>pulsar-plugin</module>
+        <module>ibm-mq-plugin</module>
     </modules>
     <properties>
         <maven.compiler.release>11</maven.compiler.release>
