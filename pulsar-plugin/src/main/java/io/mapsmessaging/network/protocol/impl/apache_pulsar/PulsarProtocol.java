@@ -17,44 +17,33 @@
  */
 package io.mapsmessaging.network.protocol.impl.apache_pulsar;
 
-import io.mapsmessaging.api.transformers.Transformer;
 import io.mapsmessaging.logging.Logger;
 import io.mapsmessaging.logging.LoggerFactory;
 import io.mapsmessaging.network.EndPointURL;
 import io.mapsmessaging.network.io.EndPoint;
-import io.mapsmessaging.network.protocol.impl.plugin.PluginProtocol;
-import io.mapsmessaging.selector.operators.ParserExecutor;
+import io.mapsmessaging.network.protocol.impl.plugin.Plugin;
 import jakarta.validation.constraints.NotNull;
 import lombok.NonNull;
 import org.apache.pulsar.client.api.*;
-import org.apache.pulsar.client.api.MessageListener;
 import org.jetbrains.annotations.Nullable;
 
-
-import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 
-public class PulsarProtocol extends PluginProtocol implements MessageListener<byte[]> {
+public class PulsarProtocol extends Plugin  {
 
-  private final Map<String, String> nameMapping;
   private final Logger logger;
-  private final PulsarClient client;
+  private final EndPointURL url;
+  private PulsarClient client;
 
   private final Map<String, Producer<byte[]>> producers;
   private final Map<String, Consumer<byte[]>> consumers;
 
-  public PulsarProtocol(@NonNull @NotNull EndPoint endPoint) throws PulsarClientException {
-    super(endPoint);
-    EndPointURL url = new EndPointURL(endPoint.getConfig().getUrl());
-    client = PulsarClient.builder()
-        .serviceUrl("pulsar://"+url.getHost()+":"+url.getPort())
-        .build();
+  public PulsarProtocol(@NonNull @NotNull EndPoint endPoint) {
+    url = new EndPointURL(endPoint.getConfig().getUrl());
     logger = LoggerFactory.getLogger(PulsarProtocol.class);
-    nameMapping = new ConcurrentHashMap<>();
     logger.log(PulsarLogMessages.INITIALISE_PULSAR_ENDPOINT, url.toString());
     producers = new LinkedHashMap<>();
     consumers = new LinkedHashMap<>();
@@ -62,79 +51,119 @@ public class PulsarProtocol extends PluginProtocol implements MessageListener<by
 
   @Override
   public void close() throws IOException {
-    super.close();
+    for(Consumer<byte[]> consumer : consumers.values()) {
+      consumer.close();
+    }
+    for(Producer<byte[]> producer : producers.values()) {
+      producer.close();
+    }
     client.close();
+    super.close();
   }
 
+  /**
+   * Called when the plugin has connected locally to the messaging engine and is ready to process requests
+   */
   @Override
-  public void forwardMessage(String destinationName, byte[] data, Map<String, Object> map) {
-    String lookup = nameMapping.get(destinationName);
-    if(lookup != null) {
-      try {
-        Producer<byte[]> producer = producers.get(destinationName);
-        if(producer != null) {
-          producer.send(data);
-        }
-        logger.log(PulsarLogMessages.PULSAR_SEND_MESSAGE, destinationName);
-      } catch (IOException ioException) {
-        logger.log(PulsarLogMessages.PULSAR_FAILED_TO_SEND_MESSAGE, destinationName, ioException);
-      }
-    }
-  }
-
-  @Override
-  public void connect(String sessionId, String username, String password) throws IOException{
+  public void initialise(){
     try {
-      doConnect(sessionId,username,password);
-    } catch (LoginException e) {
+      client = PulsarClient.builder()
+          .serviceUrl("pulsar://" + url.getHost() + ":" + url.getPort())
+          .build();
+    }
+    catch (PulsarClientException e) {
       logger.log(PulsarLogMessages.PULSAR_SESSION_CREATION_ERROR, e);
-      IOException ioException = new IOException();
-      e.initCause(e);
-      throw ioException;
     }
   }
 
   @Override
-  public void subscribeRemote(@NonNull @org.jetbrains.annotations.NotNull String resource, @NonNull @org.jetbrains.annotations.NotNull String mappedResource, @Nullable ParserExecutor parser, @Nullable Transformer transformer) throws IOException {
-    nameMapping.put(resource, mappedResource);
-    consumers.put(resource, client.newConsumer()
-        .subscriptionName(sessionId)
-        .topic(resource)
-        .messageListener(this)
+  public @NonNull String getName() {
+    return "PulsarProtocol";
+  }
+
+  @Override
+  public String getVersion() {
+    return "1.0";
+  }
+
+  @Override
+  public boolean supportsRemoteFiltering() {
+    return false;
+  }
+
+  /**
+   * This is called when the configuration requires events to be pulled from the pulsar server.
+   * @param destination The destination to subscribe to
+   * @param filter If filtering is supported then the filter will contain a JMS style selector
+   * @throws IOException
+   */
+  @Override
+  public void registerRemoteLink(@NotNull @NotNull String destination, @Nullable String filter) throws IOException {
+    consumers.put(destination, client.newConsumer()
+        .subscriptionName(getSessionId())
+        .topic(destination)
+        .messageListener(new MessageListenerHandler())
         .subscribe());
-    logger.log(PulsarLogMessages.PULSAR_SUBSCRIBE_REMOTE_SUCCESS, resource, mappedResource);
+    logger.log(PulsarLogMessages.PULSAR_SUBSCRIBE_REMOTE_SUCCESS, destination);
   }
 
+
+  /**
+   * Before any events are passed from the MAPS server this will be called to indicate that the configuration has
+   * a local destination(s) to be sent to a remote Pulsar server. So whatever needs to happen to facilitate that happens here
+   *
+   * @param destination The name of the destination ( it could be a MQTT wild card subscription )
+   * @throws IOException
+   */
   @Override
-  public void subscribeLocal(@NonNull @NotNull String resource, @NonNull @NotNull String mappedResource, String selector, @Nullable Transformer transformer) throws IOException {
-    if(transformer != null) {
-      destinationTransformerMap.put(resource, transformer);
-    }
-    nameMapping.put(resource, mappedResource);
-    producers.put(resource, client.newProducer()
-        .topic(resource)
-        .producerName(sessionId)
+  public void registerLocalLink(@NonNull @NotNull String destination) throws IOException{
+    producers.put(destination, client.newProducer()
+        .topic(destination)
+        .producerName(getSessionId())
         .create());
-    super.subscribeLocal(selector, resource, mappedResource, transformer);
-    logger.log(PulsarLogMessages.PULSAR_SUBSCRIBE_LOCAL_SUCCESS, resource, mappedResource);
+    logger.log(PulsarLogMessages.PULSAR_SUBSCRIBE_LOCAL_SUCCESS, destination);
   }
 
+
+  /**
+   * Handle message coming from the MAPS server destined to the remote name
+   * @param destinationName Fully Qualified remote name
+   * @param data byte[] of the data to send
+   * @param map Optional object map with additional information
+   */
   @Override
-  public void received(Consumer<byte[]> consumer, org.apache.pulsar.client.api.Message<byte[]> message) {
-    String topicName = nameMapping.get(message.getTopicName());
-    if (topicName != null) {
+  public void outbound(@NonNull @NotNull String destinationName, @NonNull @NotNull byte[] data, Map<String, Object> map) {
+    try {
+      Producer<byte[]> producer = producers.get(destinationName);
+      if(producer != null) {
+        producer.send(data);
+      }
+      logger.log(PulsarLogMessages.PULSAR_SEND_MESSAGE, destinationName);
+    } catch (IOException ioException) {
+      logger.log(PulsarLogMessages.PULSAR_FAILED_TO_SEND_MESSAGE, destinationName, ioException);
+    }
+  }
+
+
+
+
+  private class MessageListenerHandler implements MessageListener<byte[]>{
+
+    @Override
+    public void received(Consumer<byte[]> consumer, Message<byte[]> message) {
       try {
-        saveMessage(topicName, message.getData(), MapConverter.convertMap(message.getProperties()));
+        inbound(message.getTopicName(), message.getData(), MapConverter.convertMap(message.getProperties()));
         consumer.acknowledge(message);
       } catch (Throwable ioException) {
-        logger.log(PulsarLogMessages.PULSAR_FAILED_TO_PROCESS_INCOMING_EVENT, topicName, ioException);
+        logger.log(PulsarLogMessages.PULSAR_FAILED_TO_PROCESS_INCOMING_EVENT, message.getTopicName(), ioException);
       }
-    }
-  }
 
-  @Override
-  public void reachedEndOfTopic(Consumer<byte[]> consumer) {
-    // This is called via pulsar, no action required here, for now
+    }
+
+    @Override
+    public void reachedEndOfTopic(Consumer<byte[]> consumer) {
+      // This is called via pulsar, no action required here, for now
+    }
   }
 
 }

@@ -18,12 +18,14 @@
 
 package io.mapsmessaging.network.protocol.impl.apache_pulsar;
 
-import java.io.IOException;
 import io.mapsmessaging.network.io.EndPoint;
 import io.mapsmessaging.network.io.Packet;
 import io.mapsmessaging.network.protocol.Protocol;
 import io.mapsmessaging.network.protocol.ProtocolImplFactory;
 import io.mapsmessaging.network.protocol.detection.NoOpDetection;
+import io.mapsmessaging.network.protocol.impl.plugin.PluginProtocol;
+
+import java.io.IOException;
 
 /**
  * This class is a proof of concept on how the server could connect to other
@@ -40,7 +42,7 @@ public class PulsarProtocolFactory extends ProtocolImplFactory {
 
   @Override
   public Protocol connect(EndPoint endPoint, String sessionId, String username, String password) throws IOException {
-    Protocol protocol = new PulsarProtocol(endPoint);
+    Protocol protocol = new PluginProtocol( endPoint, new PulsarProtocol(endPoint));
     protocol.connect(sessionId, username, password);
     return protocol;
   }
