@@ -125,7 +125,7 @@ public class MqProtocol extends Plugin {
         message.readFully(data);
         inbound(destination, data, null);
       }
-    } catch (MQException | IOException | ExecutionException | InterruptedException | TimeoutException e) {
+    } catch (MQException | IOException e) {
       logger.log(MqLogMessages.MQ_POLL_ERROR, destination, e);
     }
   }
