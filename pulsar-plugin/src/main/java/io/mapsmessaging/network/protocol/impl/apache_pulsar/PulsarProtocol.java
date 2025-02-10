@@ -22,6 +22,7 @@ import io.mapsmessaging.logging.LoggerFactory;
 import io.mapsmessaging.network.EndPointURL;
 import io.mapsmessaging.network.io.EndPoint;
 import io.mapsmessaging.network.protocol.impl.plugin.Plugin;
+import io.mapsmessaging.dto.rest.config.protocol.impl.PluginConfigDTO;
 import jakarta.validation.constraints.NotNull;
 import lombok.NonNull;
 import org.apache.pulsar.client.api.*;
@@ -41,7 +42,7 @@ public class PulsarProtocol extends Plugin  {
   private final Map<String, Producer<byte[]>> producers;
   private final Map<String, Consumer<byte[]>> consumers;
 
-  public PulsarProtocol(@NonNull @NotNull EndPoint endPoint) {
+  public PulsarProtocol(@NonNull @NotNull EndPoint endPoint, PluginConfigDTO protocolConfigDTO) {
     url = new EndPointURL(endPoint.getConfig().getUrl());
     logger = LoggerFactory.getLogger(PulsarProtocol.class);
     logger.log(PulsarLogMessages.INITIALISE_PULSAR_ENDPOINT, url.toString());
