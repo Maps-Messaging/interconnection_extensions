@@ -1,6 +1,8 @@
 package io.mapsmessaging.network.protocol.impl.ibm_mq;
 
-import io.mapsmessaging.dto.rest.config.protocol.ProtocolConfigDTO;
+import io.mapsmessaging.api.MessageBuilder;
+import io.mapsmessaging.api.message.Message;
+import io.mapsmessaging.api.message.TypedData;
 import io.mapsmessaging.dto.rest.config.protocol.impl.PluginConfigDTO;
 import io.mapsmessaging.logging.Logger;
 import io.mapsmessaging.logging.LoggerFactory;
@@ -16,9 +18,7 @@ import com.ibm.mq.*;
 import com.ibm.mq.constants.*;
 
 import java.io.IOException;
-import java.util.Hashtable;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -94,13 +94,61 @@ public class MqProtocol extends Plugin {
   }
 
   @Override
-  public void outbound(@NonNull @NotNull String destinationName, @NonNull @NotNull byte[] data, Map<String, Object> map) {
+  public void outbound(@NonNull @NotNull String destinationName, @NonNull @NotNull Message message) {
     try {
       MQQueue queue = producers.get(destinationName);
       if (queue != null) {
-        MQMessage message = new MQMessage();
-        message.write(data);
-        queue.put(message);
+        MQMessage mqMessage = new MQMessage();
+        mqMessage.write(message.getOpaqueData());
+        if(message.getCorrelationData() != null) {
+          mqMessage.correlationId = message.getCorrelationData();
+        }
+        if(message.getContentType() != null) {
+          mqMessage.format = message.getContentType();
+        }
+        for(Map.Entry<String, TypedData> entry:message.getDataMap().entrySet()) {
+          switch(entry.getValue().getType()){
+            case STRING:
+              mqMessage.setStringProperty(entry.getKey(), (String)entry.getValue().getData());
+              break;
+
+            case INT:
+              mqMessage.setIntProperty(entry.getKey(), (Integer)entry.getValue().getData());
+              break;
+
+            case LONG:
+              mqMessage.setLongProperty(entry.getKey(), (Long)entry.getValue().getData());
+              break;
+
+            case FLOAT:
+              mqMessage.setFloatProperty(entry.getKey(), (Float)entry.getValue().getData());
+              break;
+
+            case DOUBLE:
+              mqMessage.setDoubleProperty(entry.getKey(), (Double)entry.getValue().getData());
+              break;
+
+            case BOOLEAN:
+              mqMessage.setBooleanProperty(entry.getKey(), (Boolean)entry.getValue().getData());
+              break;
+
+            case SHORT:
+              mqMessage.setShortProperty(entry.getKey(), (Short)entry.getValue().getData());
+              break;
+
+            case BYTE:
+              mqMessage.setByteProperty(entry.getKey(), (Byte)entry.getValue().getData());
+              break;
+
+            case CHAR:
+              mqMessage.setStringProperty(entry.getKey(), (String)entry.getValue().getData());
+              break;
+
+              default:
+                break;
+          }
+        }
+        queue.put(mqMessage);
         logger.log(MqLogMessages.MQ_MESSAGE_SENT, destinationName);
       } else {
         logger.log(MqLogMessages.MQ_PRODUCER_NOT_FOUND, destinationName);
@@ -140,7 +188,22 @@ public class MqProtocol extends Plugin {
       queue.get(message, gmo);
       byte[] data = new byte[message.getDataLength()];
       message.readFully(data);
-      inbound(destination, data, null);
+      MessageBuilder messageBuilder = new MessageBuilder();
+      messageBuilder.setCorrelationData(message.correlationId);
+      messageBuilder.setExpiry(message.expiry);
+      messageBuilder.setContentType(message.format);
+
+      Enumeration<String> propertyNames = message.getPropertyNames("%");
+      Map<String, TypedData> map = new LinkedHashMap<>();
+      while(propertyNames.hasMoreElements()) {
+        String propertyName = propertyNames.nextElement();
+        Object obj = message.getObjectProperty(propertyName);
+        map.put(propertyName, new TypedData(obj));
+      }
+      messageBuilder.setDataMap(map);
+
+
+      inbound(destination, messageBuilder.build());
     } catch (MQException | IOException e) {
 //      logger.log(MqLogMessages.MQ_POLL_ERROR, destination, e);
     }

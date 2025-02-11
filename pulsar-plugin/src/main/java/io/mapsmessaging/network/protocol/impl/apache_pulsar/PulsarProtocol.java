@@ -17,6 +17,7 @@
  */
 package io.mapsmessaging.network.protocol.impl.apache_pulsar;
 
+import io.mapsmessaging.api.MessageBuilder;
 import io.mapsmessaging.logging.Logger;
 import io.mapsmessaging.logging.LoggerFactory;
 import io.mapsmessaging.network.EndPointURL;
@@ -129,15 +130,14 @@ public class PulsarProtocol extends Plugin  {
   /**
    * Handle message coming from the MAPS server destined to the remote name
    * @param destinationName Fully Qualified remote name
-   * @param data byte[] of the data to send
-   * @param map Optional object map with additional information
+   * @param message io.mapsmessaging.api.message.Message containing the data to send
    */
   @Override
-  public void outbound(@NonNull @NotNull String destinationName, @NonNull @NotNull byte[] data, Map<String, Object> map) {
+  public void outbound(@NonNull @NotNull String destinationName, @NonNull @NotNull io.mapsmessaging.api.message.Message message) {
     try {
       Producer<byte[]> producer = producers.get(destinationName);
       if(producer != null) {
-        producer.send(data);
+        producer.send(message.getOpaqueData());
       }
       logger.log(PulsarLogMessages.PULSAR_SEND_MESSAGE, destinationName);
     } catch (IOException ioException) {
@@ -153,7 +153,10 @@ public class PulsarProtocol extends Plugin  {
     @Override
     public void received(Consumer<byte[]> consumer, Message<byte[]> message) {
       try {
-        inbound(message.getTopicName(), message.getData(), MapConverter.convertMap(message.getProperties()));
+        MessageBuilder messageBuilder = new MessageBuilder()
+            .setOpaqueData(message.getData())
+                .setDataMap(MapConverter.convertMap(message.getProperties()));
+        inbound(message.getTopicName(), messageBuilder.build());
         consumer.acknowledge(message);
       } catch (Throwable ioException) {
         logger.log(PulsarLogMessages.PULSAR_FAILED_TO_PROCESS_INCOMING_EVENT, message.getTopicName(), ioException);
