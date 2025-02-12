@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>aws-sns-plugin</module>
         <module>pulsar-plugin</module>
         <module>ibm-mq-plugin</module>
     </modules>
