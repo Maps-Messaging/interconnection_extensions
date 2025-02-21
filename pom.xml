@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.mapsmessaging</groupId>
-    <artifactId>plugin-project</artifactId>
+    <artifactId>extension-project</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
-        <module>aws-sns-plugin</module>
-        <module>pulsar-plugin</module>
-        <module>ibm-mq-plugin</module>
+        <module>aws-sns-extension</module>
+        <module>pulsar-extension</module>
+        <module>ibm-mq-extension</module>
     </modules>
     <properties>
         <maven.compiler.release>11</maven.compiler.release>
