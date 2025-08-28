@@ -52,15 +52,32 @@
             <comments>Applied in conjunction with Apache 2.0 to restrict commercial sale</comments>
         </license>
     </licenses>
+
     <modules>
         <module>aws-sns-extension</module>
         <module>pulsar-extension</module>
         <module>ibm-mq-extension</module>
     </modules>
     <properties>
-        <maven.compiler.release>11</maven.compiler.release>
+        <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
+
+        <!-- Base -->
+        <maps.logging.version>2.1.1-SNAPSHOT</maps.logging.version>
+        <maps.jms_selector.version>2.1.0-SNAPSHOT</maps.jms_selector.version>
+        <maps.nolc.version>1.2.1-SNAPSHOT</maps.nolc.version>
+
+        <!-- first level dependencies -->
+        <maps.nbts.version>2.2.1-SNAPSHOT</maps.nbts.version>
+        <maps.schema.version>2.2.1-SNAPSHOT</maps.schema.version>
+        <maps.config.version>1.1.1-SNAPSHOT</maps.config.version>
+
+        <!-- Second level dependencies -->
+        <maps.storage.version>2.5.1-SNAPSHOT</maps.storage.version>
+        <maps.device.version>2.0.1-SNAPSHOT</maps.device.version>
+        <maps.auth.version>2.0.1-SNAPSHOT</maps.auth.version>
     </properties>
     <repositories>
         <repository>
@@ -84,10 +101,6 @@
             <name>maps_snapshot_repository</name>
             <url>https://repository.mapsmessaging.io/repository/maps_snapshots/</url>
         </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
     </distributionManagement>
     <build>
         <plugins>
@@ -169,4 +182,43 @@
             </plugin>
         </plugins>
     </build>
+    <dependencies>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>maps</artifactId>
+            <version>3.3.7-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>simple_logging</artifactId>
+            <version>${maps.logging.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>jms_selector_parser</artifactId>
+            <version>${maps.jms_selector.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>non_block_task_scheduler</artifactId>
+            <version>${maps.nbts.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>dynamic_storage</artifactId>
+            <version>${maps.storage.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.38</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 </project>
