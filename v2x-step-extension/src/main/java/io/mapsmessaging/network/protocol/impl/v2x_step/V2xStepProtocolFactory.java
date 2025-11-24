@@ -15,9 +15,16 @@ import java.io.IOException;
  */
 public class V2xStepProtocolFactory extends ProtocolImplFactory {
 
+    static{
+        System.out.println("##### v2xStep Protocol class loaded");
+    }
+
+
   public V2xStepProtocolFactory() {
     super("v2x-step", "Provides a V2X STEP protocol connection", new NoOpDetection());
   }
+
+
 
   @Override
   public Protocol connect(EndPoint endPoint, String sessionId, String username, String password) throws IOException {
@@ -29,11 +36,11 @@ public class V2xStepProtocolFactory extends ProtocolImplFactory {
 
   @Override
   public void create(EndPoint endPoint, Packet packet) throws IOException {
-    // STEP protocol does not support direct client connections
+    // STEP protocol does not support incoming client connections
   }
 
   @Override
   public String getTransportType() {
-    return "v2x-step";
+    return "";
   }
 }

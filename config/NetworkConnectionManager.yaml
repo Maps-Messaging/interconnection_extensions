@@ -1,0 +1,138 @@
+#
+# Copyright [ 2025 ] MapsMessaging B.V.
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+# MapsMessaging Interconnection Extensions - Docker Configuration
+#
+# This is a template configuration file for running MapsMessaging with
+# interconnection extensions in Docker. Copy and modify this file to
+# configure your specific extensions.
+#
+# Uncomment and configure the extension sections you need.
+#
+
+NetworkConnectionManager:
+  global:
+
+  data:
+    # Example: V2X STEP Extension
+    # Uncomment and configure the section below to enable V2X STEP integration
+    #
+    # -
+    #   name: v2x_step_connection
+    #   url: "step://DE_DEV_FRANKFURT"
+    #   protocol: v2x-step
+    #   plugin: true
+    #   config:
+    #     applicationId: "your-app-id-here"
+    #     applicationToken: "your-app-token-here"
+    #     sdkLogLevel: "INFO"
+    #     denmService:
+    #       enabled: true
+    #       publishGroup: "DENM_TX_GROUP"
+    #       subscribeGroup: "DENM_RX_GROUP"
+    #   links:
+    #     - direction: push
+    #       local_namespace: "/v2x/outbound/denm"
+    #       remote_namespace: "DENM_TX_GROUP"
+    #       service_type: "DENM"
+    #       include_schema: false
+    #       field_mappings:
+    #         causeCode: "denm.situation.eventType.causeCode"
+    #         subCauseCode: "denm.situation.eventType.subCauseCode"
+    #         latitude: "denm.denm.management.eventPosition.latitude"
+    #         longitude: "denm.denm.management.eventPosition.longitude"
+    #         validityDuration: "denm.denm.management.validityDuration"
+    #         transmissionInterval: "denm.denm.management.transmissionInterval"
+    #         detectionTime: "denm.denm.management.detectionTime"
+
+    # Example: Apache Pulsar Extension
+    # Uncomment and configure the section below to enable Pulsar integration
+    #
+    # -
+    #   name: pulsar_connection
+    #   url: "pulsar://localhost:6650"
+    #   protocol: pulsar
+    #   plugin: true
+    #   config:
+    #     serviceUrl: "pulsar://localhost:6650"
+    #   links:
+    #     - direction: push
+    #       local_namespace: "/pulsar/outbound"
+    #       remote_namespace: "persistent://public/default/my-topic"
+    #       include_schema: false
+    #     - direction: pull
+    #       remote_namespace: "persistent://public/default/my-topic"
+    #       local_namespace: "/pulsar/inbound"
+    #       include_schema: false
+
+    # Example: AWS SNS Extension
+    # Uncomment and configure the section below to enable AWS SNS integration
+    #
+    # -
+    #   name: aws_sns_connection
+    #   url: "sns://us-east-1"
+    #   protocol: aws-sns
+    #   plugin: true
+    #   config:
+    #     region: "us-east-1"
+    #     topicArn: "arn:aws:sns:us-east-1:123456789012:my-topic"
+    #     accessKeyId: "your-access-key"
+    #     secretAccessKey: "your-secret-key"
+    #   links:
+    #     - direction: push
+    #       local_namespace: "/aws/sns/outbound"
+    #       remote_namespace: "my-topic"
+    #       include_schema: false
+
+    # Example: IBM MQ Extension
+    # Uncomment and configure the section below to enable IBM MQ integration
+    #
+    # -
+    #   name: ibm_mq_connection
+    #   url: "ibmmq://localhost:1414"
+    #   protocol: ibm-mq
+    #   plugin: true
+    #   config:
+    #     queueManager: "QM1"
+    #     channel: "SYSTEM.DEF.SVRCONN"
+    #     userID: "mqm"
+    #     password: "passw0rd"
+    #     port: 1414
+    #   links:
+    #     - direction: push
+    #       local_namespace: "/ibmmq/outbound"
+    #       remote_namespace: "DEV.QUEUE.1"
+    #       include_schema: false
+    #     - direction: pull
+    #       remote_namespace: "DEV.QUEUE.1"
+    #       local_namespace: "/ibmmq/inbound"
+    #       include_schema: false
+
+# Configuration Notes:
+#
+# 1. Extension JAR files must be mounted in the Docker container's plugins directory
+#    See docker-compose.yml for volume mount configuration
+#
+# 2. Each extension requires its external system to be accessible from the container
+#    Use appropriate networking configuration (host.docker.internal, container names, etc.)
+#
+# 3. For production use, consider using Docker secrets or environment variables
+#    for sensitive credentials instead of hardcoding them in this file
+#
+# 4. See individual extension README files for detailed configuration options:
+#    - v2x-step-extension/README.md
+#    - pulsar-extension/README.md (pending)
+#    - aws-sns-extension/README.md (pending)
+#    - ibm-mq-extension/README.md (pending)

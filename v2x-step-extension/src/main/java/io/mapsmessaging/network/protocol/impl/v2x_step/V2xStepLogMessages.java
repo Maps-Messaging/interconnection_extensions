@@ -13,7 +13,11 @@ public enum V2xStepLogMessages implements LogMessage {
   V2X_STEP_CLOSED(LEVEL.INFO, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "V2X STEP protocol closed"),
   V2X_STEP_MESSAGE_SENT(LEVEL.DEBUG, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "STEP message sent to {}"),
   V2X_STEP_SUBSCRIBE_REMOTE(LEVEL.INFO, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Subscribed to STEP remote: {}"),
-  V2X_STEP_SUBSCRIBE_LOCAL(LEVEL.INFO, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Registered local STEP subscription for: {}");
+  V2X_STEP_SUBSCRIBE_LOCAL(LEVEL.INFO, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Registered local STEP subscription for: {}"),
+  V2X_STEP_ERROR(LEVEL.ERROR, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "V2X STEP error: {}"),
+  V2X_STEP_OUTBOUND_ERROR(LEVEL.ERROR, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Failed to publish outbound message to {}: {}"),
+  V2X_STEP_DESTINATION_NOT_REGISTERED(LEVEL.WARN, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Outbound message to unregistered destination: {}"),
+  V2X_STEP_OUTBOUND_SUCCESS(LEVEL.DEBUG, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Triggered {} in group {}, sequenceNumber={}");
 
   private final String message;
   private final LEVEL level;
