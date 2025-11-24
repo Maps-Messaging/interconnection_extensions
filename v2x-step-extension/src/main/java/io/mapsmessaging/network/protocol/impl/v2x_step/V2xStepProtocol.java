@@ -26,9 +26,6 @@ import com.vodafone.v2xsdk4javav2.facade.enums.V2XServiceState;
  * DENM events via the STEP SDK.
  */
 public class V2xStepProtocol extends Extension {
-    static{
-        System.out.println("##### v2xStep Protocol class loaded");
-    }
 
   private final Logger logger;
   private final ExtensionConfigDTO protocolConfig;
@@ -51,13 +48,12 @@ public class V2xStepProtocol extends Extension {
     this.pushBindings = new ConcurrentHashMap<>();
     this.fieldExtractor = new PayloadFieldExtractor(logger);
 
-    // DEBUG: Log the received configuration
-    System.out.println("##### V2xStepProtocol constructor called");
-    System.out.println("##### URL: " + endPoint.getConfig().getUrl());
+    // Log constructor invocation
+    logger.log(V2xStepLogMessages.V2X_STEP_CONSTRUCTOR, endPoint.getConfig().getUrl());
     if (protocolConfigDTO != null && protocolConfigDTO.getConfig() != null) {
-      System.out.println("##### Config received: " + protocolConfigDTO.getConfig().keySet());
+      logger.log(V2xStepLogMessages.V2X_STEP_CONFIG_RECEIVED, protocolConfigDTO.getConfig().keySet().toString());
     } else {
-      System.out.println("##### Config is NULL!");
+      logger.log(V2xStepLogMessages.V2X_STEP_CONFIG_NULL);
     }
   }
 
@@ -91,13 +87,13 @@ public class V2xStepProtocol extends Extension {
 
   @Override
   public void initialise() throws IOException {
-    System.out.println("##### V2xStepProtocol.initialise() called");
+    logger.log(V2xStepLogMessages.V2X_STEP_INIT_START);
     Map<String, Object> cfg = protocolConfig.getConfig();
-    System.out.println("##### Configuration map: " + cfg);
+    logger.log(V2xStepLogMessages.V2X_STEP_INIT_CONFIG, cfg.toString());
     try {
       // Parse STEP instance from URL (e.g., step://DE_DEV_FRANKFURT)
       String instanceName = url.getHost();
-      System.out.println("##### Parsed STEP instance: " + instanceName);
+      logger.log(V2xStepLogMessages.V2X_STEP_INIT_INSTANCE, instanceName);
       if (instanceName == null || instanceName.isEmpty()) {
         throw new IOException("STEP instance not specified in URL. Use format: step://INSTANCE_NAME (e.g., step://DE_DEV_FRANKFURT)");
       }
@@ -115,6 +111,7 @@ public class V2xStepProtocol extends Extension {
           denmPublishGroup = denmConfig.get("publishGroup").toString();
         }
       }
+      logger.log(V2xStepLogMessages.V2X_STEP_INIT_DENM_CONFIG, denmEnabled, denmPublishGroup);
 
       if (!denmEnabled) {
         throw new IOException("DENM service must be enabled for V2X STEP extension");
@@ -140,6 +137,7 @@ public class V2xStepProtocol extends Extension {
 
       SDKConfiguration sdkConfig = builder.build();
       locationProvider.turnOn();
+      logger.log(V2xStepLogMessages.V2X_STEP_INIT_SDK_START, stepInst, appId);
       sdk = new V2XSDK(locationProvider, sdkConfig);
       sdkAdapter = new V2xStepSdkAdapterImpl(sdk);
       sdk.setSDKLogLevel(LogLevel.INFO);
@@ -148,6 +146,7 @@ public class V2xStepProtocol extends Extension {
       // Wait for V2X service to come up
       int retries = 0;
       while (sdk.getV2XServiceState() != V2XServiceState.UP_AND_RUNNING && retries < 10) {
+        logger.log(V2xStepLogMessages.V2X_STEP_INIT_SDK_STATE, sdk.getV2XServiceState());
         Thread.sleep(1000);
         retries++;
       }
@@ -196,18 +195,36 @@ public class V2xStepProtocol extends Extension {
 
   @Override
   public void outbound(String destination, Message message) {
+    logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_CALLED, destination);
+
+    // Log current bindings for debugging
+    logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_BINDINGS_COUNT,
+        pushBindings.size(), pushBindings.keySet().toString());
+
     // Resolve the push binding for this destination
     PushBinding binding = pushBindings.get(destination);
+    logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_BINDING_LOOKUP,
+        destination, binding != null ? "yes" : "no");
+
     if (binding == null) {
       logger.log(V2xStepLogMessages.V2X_STEP_DESTINATION_NOT_REGISTERED, destination);
       return; // No-op for unregistered destinations
     }
 
     try {
+      // Log message details
+      byte[] payload = message.getOpaqueData();
+      logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_MESSAGE_SIZE,
+          payload != null ? payload.length : 0);
+
       // Extract DENM parameters from message using field mapping
+      logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_EXTRACTING,
+          binding.getFieldMapping().toString());
       DenmParameters params = fieldExtractor.extractDenmParameters(message, binding.getFieldMapping());
+      logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_PARAMS, params.toString());
 
       // Trigger DENM via SDK adapter
+      logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_TRIGGERING);
       long sequenceNumber = sdkAdapter.triggerDenm(params);
 
       logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_SUCCESS,
@@ -226,12 +243,14 @@ public class V2xStepProtocol extends Extension {
 
   @Override
   public void registerLocalLink(String destination) throws IOException {
-    System.out.println("##### V2xStepProtocol.registerLocalLink() called for destination: " + destination);
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_START, destination);
+
     // Find the link configuration for this destination
     Map<String, Object> linkAttrs = findLinkAttributes(destination, "push");
-    System.out.println("##### Found link attributes: " + linkAttrs);
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_ATTRS, linkAttrs != null ? linkAttrs.toString() : "null");
+
     if (linkAttrs == null) {
-      System.out.println("##### ERROR: No push link configuration found for destination: " + destination);
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS, destination);
       throw new IOException("No push link configuration found for destination: " + destination);
     }
 
@@ -240,6 +259,8 @@ public class V2xStepProtocol extends Extension {
     if (serviceTypeObj == null) {
       throw new IOException("Missing service_type attribute for push link: " + destination);
     }
+
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_SERVICE_TYPE, serviceTypeObj.toString());
 
     StepServiceType serviceType;
     try {
@@ -259,6 +280,7 @@ public class V2xStepProtocol extends Extension {
     if (perLinkPublishGroup != null && !perLinkPublishGroup.toString().trim().isEmpty()) {
       publishGroup = perLinkPublishGroup.toString();
     }
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_PUBLISH_GROUP, publishGroup);
 
     // Validate publish group is configured
     if (publishGroup == null || publishGroup.trim().isEmpty()) {
@@ -270,16 +292,17 @@ public class V2xStepProtocol extends Extension {
     Object fieldMappingsObj = linkAttrs.get("field_mappings");
     if (fieldMappingsObj instanceof Map) {
       fieldMapping = DenmFieldMapping.fromConfig((Map<String, Object>) fieldMappingsObj);
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_FIELD_MAPPING, "custom mapping provided");
     } else {
       fieldMapping = DenmFieldMapping.createDefault();
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_FIELD_MAPPING, "using default mapping");
     }
 
     // Store the push binding
     PushBinding binding = new PushBinding(serviceType, publishGroup, fieldMapping);
     pushBindings.put(destination, binding);
 
-    System.out.println("##### Successfully registered push binding: " + destination + " -> " + binding);
-    logger.log(V2xStepLogMessages.V2X_STEP_SUBSCRIBE_LOCAL, destination + " -> " + binding);
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_SUCCESS, destination, binding.toString());
   }
 
   /**

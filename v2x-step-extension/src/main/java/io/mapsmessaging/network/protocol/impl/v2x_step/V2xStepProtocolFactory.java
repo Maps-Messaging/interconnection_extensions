@@ -15,11 +15,6 @@ import java.io.IOException;
  */
 public class V2xStepProtocolFactory extends ProtocolImplFactory {
 
-    static{
-        System.out.println("##### v2xStep Protocol class loaded");
-    }
-
-
   public V2xStepProtocolFactory() {
     super("v2x-step", "Provides a V2X STEP protocol connection", new NoOpDetection());
   }
