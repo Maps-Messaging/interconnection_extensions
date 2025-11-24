@@ -62,83 +62,11 @@ mvn clean install
 
 See individual extension README files for specific deployment instructions.
 
-## Running with Docker
-
-A Docker Compose setup is provided for quick testing and development.
-
-### Prerequisites
-
-- Docker and Docker Compose installed
-- Built extension JARs (run `mvn clean install` first)
-
-### Quick Start
-
-1. **Build the extensions:**
-   ```bash
-   mvn clean install
-   ```
-
-2. **Configure your extensions:**
-   Edit `config/NetworkConnectionManager.yaml` and uncomment/configure the extensions you want to use.
-
-3. **Enable extension JARs in docker-compose.yml:**
-   Uncomment the volume mounts for the extensions you want to load in `docker-compose.yml`.
-
-4. **Start the MapsMessaging server:**
-   ```bash
-   docker-compose up -d
-   ```
-
-5. **View logs:**
-   ```bash
-   docker-compose logs -f maps
-   ```
-
-6. **Stop the server:**
-   ```bash
-   docker-compose down
-   ```
-
-### Accessing the Server
-
-- **MQTT:** `mqtt://localhost:1883`
-- **REST API:** `http://localhost:8080`
-
-### Example: Running V2X STEP Extension
-
-1. Build the extension:
-   ```bash
-   mvn clean install -pl v2x-step-extension
-   ```
-
-2. Ensure the V2X SDK JAR is in place:
-   ```bash
-   ls v2x-step-extension/lib/v2xsdk4java-3.1.0.jar
-   ```
-
-3. Edit `docker-compose.yml` and uncomment these lines:
-   ```yaml
-   - ./v2x-step-extension/target/v2x-step-extension-1.0.0-SNAPSHOT.jar:/maps-4.2.1-SNAPSHOT/plugins/v2x-step-extension-1.0.0-SNAPSHOT.jar
-   - ./v2x-step-extension/lib/v2xsdk4java-3.1.0.jar:/maps-4.2.1-SNAPSHOT/lib/v2xsdk4java-3.1.0.jar
-   ```
-
-4. Edit `config/NetworkConnectionManager.yaml` and configure your STEP credentials (see v2x-step-extension example section).
-
-5. Start the container:
-   ```bash
-   docker-compose up -d
-   ```
-
-### Configuration Files
-
-- `docker-compose.yml` - Container orchestration and volume mounts
-- `config/NetworkConnectionManager.yaml` - Extension configuration (mounted into container)
-
 ## Development Requirements
 
 - JDK 11 or later (JDK 21 for main project)
 - Maven 3.6+
-- MapsMessaging Server 4.2.1 or later (or use Docker setup above)
+- MapsMessaging Server 4.2.1 or later
 - Extension-specific dependencies (see individual README files)
 
 ## License
