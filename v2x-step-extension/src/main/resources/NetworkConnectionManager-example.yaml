@@ -61,7 +61,7 @@ NetworkConnectionManager:
         sdkLogLevel: "INFO"
 
         # --- DENM Service Configuration ---
-        # Currently only DENM is supported. CAM and other message types to be added later.
+        # Currently only DENM is supported.
 
         denmService:
           # Enable DENM service (required: true)
@@ -170,7 +170,7 @@ NetworkConnectionManager:
 #
 # 5. Service enablement:
 #    - denmService.enabled must be true
-#    - Currently only DENM is supported (CAM support planned for future)
+#    - Currently only DENM is supported
 #
 # 6. Group naming:
 #    - publishGroup name is defined by your STEP deployment

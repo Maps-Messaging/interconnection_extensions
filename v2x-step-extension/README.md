@@ -18,7 +18,6 @@ This extension integrates MapsMessaging with the Vodafone V2X STEP platform to t
 - ✅ **ETSI ITS compatibility** - Default field mappings for ETSI DENM XML format with automatic coordinate conversion
 - ✅ **Multiple payload formats** - Supports XML parsing, message data map extraction, with JSON support planned
 - ✅ **Per-link customization** - Each routing link can have its own field mappings
-- ⏳ **DENM only (for now)** - CAM and other V2X message types planned for future releases
 - ⏳ **Push links only** - Pull links (STEP → MAPS) not yet implemented
 
 ## Quick Start
@@ -363,18 +362,15 @@ Example log output:
 
 ### Current Limitations
 
-- ❌ **DENM only** - CAM, VAM, SPATEM, MAPEM not yet supported
 - ❌ **No pull links** - Cannot receive DENM events from STEP → MAPS
 - ❌ **No JSON parsing** - Only XML and message data map supported
 - ❌ **No DENM updates/terminations** - Only initial trigger supported
 
 ### Planned Features
 
-- 🔄 CAM message support (different approach - SDK auto-generates based on vehicle dynamics)
 - 🔄 Pull link implementation (STEP → MAPS event subscription)
 - 🔄 JSON payload parsing
 - 🔄 DENM update/terminate operations
-- 🔄 Additional V2X message types (VAM, SPATEM, etc.)
 
 ## Development
 
