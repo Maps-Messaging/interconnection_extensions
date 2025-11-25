@@ -24,8 +24,15 @@ public class V2xStepProtocolFactory extends ProtocolImplFactory {
   @Override
   public Protocol connect(EndPoint endPoint, String sessionId, String username, String password) throws IOException {
     ExtensionConfigDTO config = (ExtensionConfigDTO) ((ExtensionEndPoint) endPoint).config();
+
+    // V2X STEP uses applicationId/applicationToken authentication, not username/password
+    // Provide default credentials and session ID if not specified to avoid NullPointerException in ExtensionProtocol
+    String effectiveSessionId = (sessionId != null && !sessionId.isEmpty()) ? sessionId : "v2x-step-session-" + java.util.UUID.randomUUID();
+    String effectiveUsername = (username != null && !username.isEmpty()) ? username : "v2x-step-client";
+    String effectivePassword = (password != null && !password.isEmpty()) ? password : "";
+
     Protocol protocol = new ExtensionProtocol(endPoint, new V2xStepProtocol(endPoint, config));
-    protocol.connect(sessionId, username, password);
+    protocol.connect(effectiveSessionId, effectiveUsername, effectivePassword);
     return protocol;
   }
 

@@ -39,6 +39,7 @@ public class V2xStepProtocol extends Extension {
 
   // Map of remote_namespace -> PushBinding for outbound routing
   private final Map<String, PushBinding> pushBindings;
+  private boolean closing = false; // Guard against recursive close() calls
 
   public V2xStepProtocol(EndPoint endPoint, ExtensionConfigDTO protocolConfigDTO) {
     super();
@@ -132,8 +133,8 @@ public class V2xStepProtocol extends Extension {
           .mqttClientID("maps-" + java.util.UUID.randomUUID())
           .stationType(defaultStationType)
           .denmServiceMode(ServiceMode.TxAndRx)
-          .denmPublishGroup(denmPublishGroup)
-          .denmSubscribeGroup(denmConfig.get("subscribeGroup").toString());
+          .denmPublishGroup(denmPublishGroup);
+
 
       SDKConfiguration sdkConfig = builder.build();
       locationProvider.turnOn();
@@ -163,11 +164,19 @@ public class V2xStepProtocol extends Extension {
 
   @Override
   public void close() throws IOException {
+    // Guard against infinite recursion - Extension.close() may call back to this method
+    if (closing) {
+      return;
+    }
+    closing = true;
+
     try {
-      if (denmEnabled) {
-        sdk.stopDENMService();
+      if (sdk != null) {
+        if (denmEnabled) {
+          sdk.stopDENMService();
+        }
+        sdk.stopV2XService();
       }
-      sdk.stopV2XService();
       if (locationProvider != null) {
         locationProvider.turnOff();
       }
@@ -249,9 +258,11 @@ public class V2xStepProtocol extends Extension {
     Map<String, Object> linkAttrs = findLinkAttributes(destination, "push");
     logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_ATTRS, linkAttrs != null ? linkAttrs.toString() : "null");
 
+    // Fall back to top-level config if no link-specific configuration found
+    // This handles the case where MapsMessaging doesn't pass the links array to the extension
     if (linkAttrs == null) {
-      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS, destination);
-      throw new IOException("No push link configuration found for destination: " + destination);
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS, "falling back to top-level config");
+      linkAttrs = protocolConfig.getConfig(); // Use entire config as fallback
     }
 
     // Extract service_type attribute
@@ -298,11 +309,41 @@ public class V2xStepProtocol extends Extension {
       logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_FIELD_MAPPING, "using default mapping");
     }
 
-    // Store the push binding
-    PushBinding binding = new PushBinding(serviceType, publishGroup, fieldMapping);
-    pushBindings.put(destination, binding);
+    // Extract local_namespace (topic name) - this is the key we need for outbound() lookups
+    // The destination parameter is the remote_namespace, but outbound() is called with local topic name
+    String localNamespace = null;
+    Object localNsObj = linkAttrs.get("local_namespace");
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS,
+      "linkAttrs.local_namespace = " + localNsObj);
+    if (localNsObj != null) {
+      localNamespace = localNsObj.toString();
+    }
 
-    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_SUCCESS, destination, binding.toString());
+    // If local_namespace not found in link attrs, try top-level config
+    if (localNamespace == null) {
+      Object topLevelLocalNs = protocolConfig.getConfig().get("local_namespace");
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS,
+        "top-level config.local_namespace = " + topLevelLocalNs);
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS,
+        "full config keys = " + protocolConfig.getConfig().keySet());
+      if (topLevelLocalNs != null) {
+        localNamespace = topLevelLocalNs.toString();
+      }
+    }
+
+    // Fall back to using destination (remote_namespace) if local_namespace not found
+    if (localNamespace == null) {
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS,
+        "WARNING: local_namespace not found, using destination as key");
+      localNamespace = destination;
+    }
+
+    // Store the push binding using local_namespace as key
+    PushBinding binding = new PushBinding(serviceType, publishGroup, fieldMapping);
+    pushBindings.put(localNamespace, binding);
+
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_SUCCESS,
+      "local=" + localNamespace + " remote=" + destination, binding.toString());
   }
 
   /**
