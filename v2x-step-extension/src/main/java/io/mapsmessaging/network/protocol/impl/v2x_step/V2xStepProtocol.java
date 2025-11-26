@@ -36,12 +36,14 @@ public class V2xStepProtocol extends Extension {
   private FakeLocationProvider locationProvider;
   private boolean denmEnabled;
   private String denmPublishGroup;
+  private String denmSubscribeGroup;
 
   // Map of remote_namespace -> PushBinding for outbound routing
   private final Map<String, PushBinding> pushBindings;
   private boolean closing = false; // Guard against recursive close() calls
+    ;
 
-  public V2xStepProtocol(EndPoint endPoint, ExtensionConfigDTO protocolConfigDTO) {
+    public V2xStepProtocol(EndPoint endPoint, ExtensionConfigDTO protocolConfigDTO) {
     super();
     this.protocolConfig = protocolConfigDTO;
     this.url = new EndPointURL(endPoint.getConfig().getUrl());
@@ -80,9 +82,13 @@ public class V2xStepProtocol extends Extension {
       Map<String, Object> denmConfig = (Map<String, Object>) configMap.get("denmService");
       this.denmEnabled = Boolean.parseBoolean(denmConfig.getOrDefault("enabled", false).toString());
       if (this.denmEnabled && denmConfig.containsKey("publishGroup")) {
-        this.denmPublishGroup = denmConfig.get("publishGroup").toString();
-        logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,"DENM Group set to "+denmPublishGroup);
+         this.denmPublishGroup = denmConfig.get("publishGroup").toString();
+         logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,"DENM Publish Group set to "+denmPublishGroup);
       }
+      if (this.denmEnabled && denmConfig.containsKey("subscribeGroup")) {
+          this.denmSubscribeGroup = denmConfig.get("subscribeGroup").toString();
+          logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,"DENM Subscribe Group set to "+denmSubscribeGroup);
+        }
     }
   }
 
@@ -110,6 +116,7 @@ public class V2xStepProtocol extends Extension {
         denmEnabled = Boolean.parseBoolean(denmConfig.getOrDefault("enabled", false).toString());
         if (denmEnabled) {
           denmPublishGroup = denmConfig.get("publishGroup").toString();
+          denmSubscribeGroup = denmConfig.get("subscribeGroup").toString();
         }
       }
       logger.log(V2xStepLogMessages.V2X_STEP_INIT_DENM_CONFIG, denmEnabled, denmPublishGroup);
@@ -133,7 +140,8 @@ public class V2xStepProtocol extends Extension {
           .mqttClientID("maps-" + java.util.UUID.randomUUID())
           .stationType(defaultStationType)
           .denmServiceMode(ServiceMode.TxAndRx)
-          .denmPublishGroup(denmPublishGroup);
+          .denmPublishGroup(denmPublishGroup)
+              .denmSubscribeGroup((denmSubscribeGroup));
 
 
       SDKConfiguration sdkConfig = builder.build();
