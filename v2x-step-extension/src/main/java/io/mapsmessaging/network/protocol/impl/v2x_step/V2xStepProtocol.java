@@ -137,7 +137,9 @@ public class V2xStepProtocol extends Extension {
           .stepInstance(stepInst)
           .applicationID(appId)
           .applicationToken(appToken)
-          .mqttClientID("maps-" + java.util.UUID.randomUUID())
+          .mqttClientID("testClient123")
+              //TODO: Find out what value should the MQTT client ID have as nothing else works at the moment
+          //.mqttClientID("maps-" + java.util.UUID.randomUUID())
           .stationType(defaultStationType)
           .denmServiceMode(ServiceMode.TxAndRx)
           .denmPublishGroup(denmPublishGroup)
