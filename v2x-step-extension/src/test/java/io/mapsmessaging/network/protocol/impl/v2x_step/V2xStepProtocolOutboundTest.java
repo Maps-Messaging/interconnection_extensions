@@ -81,8 +81,8 @@ class V2xStepProtocolOutboundTest {
     // Mock SDK adapter to return sequence number
     when(mockAdapter.triggerDenm(any(DenmParameters.class))).thenReturn(42L);
 
-    // Send outbound message
-    protocol.outbound("DENM_TX_GROUP", message);
+    // Send outbound message using local_namespace as key
+    protocol.outbound("/v2x/outbound/denm", message);
 
     // Verify triggerDenm was called with correct parameters
     ArgumentCaptor<DenmParameters> paramsCaptor = ArgumentCaptor.forClass(DenmParameters.class);
@@ -130,8 +130,8 @@ class V2xStepProtocolOutboundTest {
     // Mock SDK adapter to return sequence number
     when(mockAdapter.triggerDenm(any(DenmParameters.class))).thenReturn(123L);
 
-    // Send outbound message
-    protocol.outbound("DENM_TX_GROUP", message);
+    // Send outbound message using local_namespace as key
+    protocol.outbound("/v2x/outbound/denm", message);
 
     // Verify triggerDenm was called with correct parameters
     ArgumentCaptor<DenmParameters> paramsCaptor = ArgumentCaptor.forClass(DenmParameters.class);
@@ -182,8 +182,8 @@ class V2xStepProtocolOutboundTest {
     when(mockAdapter.triggerDenm(any(DenmParameters.class)))
         .thenThrow(new IOException("SDK connection error"));
 
-    // Send outbound message - should not throw, but log error
-    assertDoesNotThrow(() -> protocol.outbound("DENM_TX_GROUP", message));
+    // Send outbound message using local_namespace as key - should not throw, but log error
+    assertDoesNotThrow(() -> protocol.outbound("/v2x/outbound/denm", message));
 
     // Verify trigger was attempted
     verify(mockAdapter).triggerDenm(any(DenmParameters.class));
@@ -197,8 +197,8 @@ class V2xStepProtocolOutboundTest {
     // Create test message with empty data
     Message message = createMessageWithOpaqueData(null);
 
-    // Send outbound message
-    protocol.outbound("DENM_TX_GROUP", message);
+    // Send outbound message using local_namespace as key
+    protocol.outbound("/v2x/outbound/denm", message);
 
     // Verify no SDK calls were made (extraction failed)
     verifyNoInteractions(mockAdapter);
@@ -304,7 +304,8 @@ class V2xStepProtocolOutboundTest {
 
     when(mockAdapter.triggerDenm(any(DenmParameters.class))).thenReturn(99L);
 
-    testProtocol.outbound("DENM_TX_GROUP", message);
+    // Send outbound message using local_namespace as key
+    testProtocol.outbound("/v2x/outbound/denm", message);
 
     // Verify trigger was called (publish group is used internally by SDK)
     verify(mockAdapter).triggerDenm(any(DenmParameters.class));
