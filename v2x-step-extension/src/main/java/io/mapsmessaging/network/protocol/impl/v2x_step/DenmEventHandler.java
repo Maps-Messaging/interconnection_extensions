@@ -79,10 +79,9 @@ public class DenmEventHandler implements EventListener {
       boolean isOwnMessage = (denm.getOriginatorID() == ownStationId);
       String origin = isOwnMessage ? "[OWN]" : "[OTHER]";
 
-      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
-          String.format("%s DENM received - StationID: %d, SeqNum: %d, CauseCode: %d, SubCauseCode: %d",
-              origin, denm.getOriginatorID(), denm.getSequenceNumber(),
-              denm.getCauseCode(), denm.getSubCauseCode()));
+      logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_DENM_RECEIVED,
+          denm.getOriginatorID(), denm.getSequenceNumber(),
+          denm.getCauseCode(), denm.getSubCauseCode());
 
       // Route to all registered pull bindings
       for (Map.Entry<String, PullBinding> entry : pullBindings.entrySet()) {
@@ -91,18 +90,18 @@ public class DenmEventHandler implements EventListener {
 
         // Filter own messages if configured
         if (binding.isFilterOwnMessages() && isOwnMessage) {
-          logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
-              "Skipping own message for destination: " + destination);
+          logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_FILTERING_OWN,
+              denm.getOriginatorID());
           continue;
         }
 
         // Invoke callback to route message to MAPS
         try {
           messageCallback.accept(destination, denm);
-          logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
-              "Routed DENM to destination: " + destination);
+          logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_SUCCESS,
+              destination, 0); // Size will be logged by handleInboundDenm
         } catch (Exception e) {
-          logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_ERROR,
+          logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_ERROR,
               destination, e.getMessage());
         }
       }

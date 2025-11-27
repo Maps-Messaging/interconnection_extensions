@@ -462,14 +462,16 @@ public class V2xStepProtocol extends Extension {
    */
   private void handleInboundDenm(String destination, DENMRecord denmRecord) {
     try {
-      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
-          String.format("Handling inbound DENM for destination: %s (StationID: %d, SeqNum: %d)",
-              destination, denmRecord.getOriginatorID(), denmRecord.getSequenceNumber()));
+      logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_HANDLING, destination);
 
       // Get the pull binding to determine output format
       // Note: We need to access the binding from denmEventHandler, but for now we'll default to JSON
       // A more elegant solution would be to pass the binding through the callback
+      String format = "JSON";
+      logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_SERIALIZING, format);
+
       byte[] payload = DenmRecordSerializer.toJson(denmRecord);
+      logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_CREATING_MESSAGE, payload.length);
 
       // Create a MAPS message object
       Message message = new MessageBuilder()
@@ -477,14 +479,14 @@ public class V2xStepProtocol extends Extension {
           .build();
 
       // Publish to the destination topic using the inbound() method from Extension base class
+      logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_CALLING_ROUTE, destination);
       inbound(destination, message);
 
-      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
-          String.format("Published inbound DENM to topic: %s (%d bytes)", destination, payload.length));
+      logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_SUCCESS, destination, payload.length);
 
     } catch (Exception e) {
-      logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_ERROR,
-          destination, "Failed to handle inbound DENM: " + e.getMessage());
+      logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_ERROR,
+          destination, e.getMessage());
     }
   }
 

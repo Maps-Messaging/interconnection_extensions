@@ -45,6 +45,16 @@ public enum V2xStepLogMessages implements LogMessage {
   V2X_STEP_OUTBOUND_SUCCESS(LEVEL.DEBUG, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Triggered {} in group {}, sequenceNumber={}"),
   V2X_STEP_OUTBOUND_ERROR(LEVEL.ERROR, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Failed to publish outbound message to {}: {}"),
 
+  // Inbound message routing
+  V2X_STEP_INBOUND_DENM_RECEIVED(LEVEL.TRACE, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Received inbound DENM - StationID: {}, SeqNum: {}, CauseCode: {}, SubCauseCode: {}"),
+  V2X_STEP_INBOUND_FILTERING_OWN(LEVEL.TRACE, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Filtering own DENM message (StationID: {})"),
+  V2X_STEP_INBOUND_HANDLING(LEVEL.TRACE, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Handling inbound DENM for destination: {}"),
+  V2X_STEP_INBOUND_SERIALIZING(LEVEL.TRACE, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Serializing DENM to {} format"),
+  V2X_STEP_INBOUND_CREATING_MESSAGE(LEVEL.TRACE, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Creating MAPS Message object ({} bytes)"),
+  V2X_STEP_INBOUND_CALLING_ROUTE(LEVEL.TRACE, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Calling inbound() to route message to: {}"),
+  V2X_STEP_INBOUND_SUCCESS(LEVEL.DEBUG, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Published inbound DENM to topic: {} ({} bytes)"),
+  V2X_STEP_INBOUND_ERROR(LEVEL.ERROR, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "Failed to handle inbound DENM for {}: {}"),
+
   // General
   V2X_STEP_MESSAGE_SENT(LEVEL.DEBUG, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "STEP message sent to {}"),
   V2X_STEP_ERROR(LEVEL.ERROR, V2xStepLogMessages.V2X_STEP_CATEGORY.PROTOCOL, "V2X STEP error: {}");
