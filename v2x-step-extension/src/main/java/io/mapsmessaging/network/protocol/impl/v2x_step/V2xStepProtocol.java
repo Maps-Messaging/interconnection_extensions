@@ -1,5 +1,6 @@
 package io.mapsmessaging.network.protocol.impl.v2x_step;
 
+import io.mapsmessaging.api.MessageBuilder;
 import io.mapsmessaging.api.message.Message;
 import io.mapsmessaging.dto.rest.config.protocol.impl.ExtensionConfigDTO;
 import io.mapsmessaging.logging.Logger;
@@ -19,6 +20,9 @@ import com.vodafone.v2xsdk4javav2.facade.enums.StationType;
 import com.vodafone.v2xsdk4javav2.facade.enums.ServiceMode;
 import com.vodafone.v2xsdk4javav2.facade.enums.LogLevel;
 import com.vodafone.v2xsdk4javav2.facade.enums.V2XServiceState;
+import com.vodafone.v2xsdk4javav2.facade.enums.V2XConnectivityState;
+import com.vodafone.v2xsdk4javav2.facade.events.EventType;
+import com.vodafone.v2xsdk4javav2.facade.records.denm.DENMRecord;
 
 /**
  * V2X STEP protocol extension for routing DENM messages between MapsMessaging and Vodafone STEP.
@@ -37,6 +41,7 @@ public class V2xStepProtocol extends Extension {
   private boolean denmEnabled;
   private String denmPublishGroup;
   private String denmSubscribeGroup;
+  private DenmEventHandler denmEventHandler;
 
   // Map of remote_namespace -> PushBinding for outbound routing
   private final Map<String, PushBinding> pushBindings;
@@ -125,8 +130,8 @@ public class V2xStepProtocol extends Extension {
         throw new IOException("DENM service must be enabled for V2X STEP extension");
       }
 
-      // Station type placeholder (not used for DENM trigger)
-      StationType defaultStationType = StationType.UNKNOWN;
+      // Station type - use PASSENGER_CAR for proper MQTT authentication
+      StationType defaultStationType = StationType.PASSENGER_CAR;
 
       // Initialize location provider (required by SDK but not used for DENM trigger)
       locationProvider = new FakeLocationProvider(0.0, 0.0);
@@ -151,7 +156,7 @@ public class V2xStepProtocol extends Extension {
       logger.log(V2xStepLogMessages.V2X_STEP_INIT_SDK_START, stepInst, appId);
       sdk = new V2XSDK(locationProvider, sdkConfig);
       sdkAdapter = new V2xStepSdkAdapterImpl(sdk);
-      sdk.setSDKLogLevel(LogLevel.INFO);
+      sdk.setSDKLogLevel(LogLevel.DEBUG);
       sdk.startV2XService();
 
       // Wait for V2X service to come up
@@ -165,7 +170,31 @@ public class V2xStepProtocol extends Extension {
         throw new IOException("V2X service did not start");
       }
 
+      // Register DENM event handler BEFORE starting DENM service
+      // This ensures the handler is ready to receive events when service starts
+      denmEventHandler = new DenmEventHandler(this::handleInboundDenm);
+      sdk.subscribe(denmEventHandler, EventType.DENM_LIST_CHANGED);
+      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED, "DENM event handler registered");
+
       sdk.startDENMService();
+
+      // Wait for MQTT connectivity after DENM service starts (SDK uses lazy initialization)
+      // MQTT connection is established when services start, not during V2X service init
+      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED, "Waiting for MQTT connection...");
+      retries = 0;
+      while (sdk.getV2XConnectivityState() != V2XConnectivityState.CONNECTED && retries < 15) {
+        logger.log(V2xStepLogMessages.V2X_STEP_INIT_SDK_STATE, sdk.getV2XConnectivityState());
+        Thread.sleep(1000);
+        retries++;
+      }
+
+      if (sdk.getV2XConnectivityState() == V2XConnectivityState.CONNECTED) {
+        logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED, "MQTT connected successfully");
+      } else {
+        logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
+            "MQTT connection not established after 15s, continuing anyway (may connect later)");
+      }
+
       logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED);
     } catch (Exception e) {
       throw new IOException("Error initializing V2X STEP protocol", e);
@@ -242,6 +271,14 @@ public class V2xStepProtocol extends Extension {
       DenmParameters params = fieldExtractor.extractDenmParameters(message, binding.getFieldMapping());
       logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_PARAMS, params.toString());
 
+      // Update location provider with extracted coordinates for geohash-based MQTT subscriptions
+      // This ensures we subscribe to the correct MQTT topics to receive our own echoed messages
+      if (locationProvider != null) {
+        locationProvider.updateLocation(params.getLatitude(), params.getLongitude());
+        logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_PARAMS,
+            "Updated location provider to: " + params.getLatitude() + ", " + params.getLongitude());
+      }
+
       // Trigger DENM via SDK adapter
       logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_TRIGGERING);
       long sequenceNumber = sdkAdapter.triggerDenm(params);
@@ -256,8 +293,67 @@ public class V2xStepProtocol extends Extension {
 
   @Override
   public void registerRemoteLink(String destination, String filter) throws IOException {
-    // TODO: implement DENM subscription (pull links)
     logger.log(V2xStepLogMessages.V2X_STEP_SUBSCRIBE_REMOTE, destination + " filter = " + filter);
+
+    // Find the link configuration for this destination
+    Map<String, Object> linkAttrs = findLinkAttributes(destination, "pull");
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_ATTRS, linkAttrs != null ? linkAttrs.toString() : "null");
+
+    // Fall back to top-level config if no link-specific configuration found
+    if (linkAttrs == null) {
+      logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_NO_ATTRS, "falling back to top-level config for pull link");
+      linkAttrs = protocolConfig.getConfig();
+    }
+
+    // Extract service_type attribute
+    Object serviceTypeObj = linkAttrs.get("service_type");
+    if (serviceTypeObj == null) {
+      throw new IOException("Missing service_type attribute for pull link: " + destination);
+    }
+
+    StepServiceType serviceType;
+    try {
+      serviceType = StepServiceType.fromString(serviceTypeObj.toString());
+    } catch (IllegalArgumentException e) {
+      throw new IOException("Invalid service_type '" + serviceTypeObj + "' for pull link: " + destination, e);
+    }
+
+    // Validate that DENM service is enabled
+    if (serviceType == StepServiceType.DENM && !denmEnabled) {
+      throw new IOException("DENM service is not enabled but pull link requires it: " + destination);
+    }
+
+    // Get subscribe group (with optional per-link override)
+    String subscribeGroup = denmSubscribeGroup;
+    Object perLinkSubscribeGroup = linkAttrs.get("subscribe_group");
+    if (perLinkSubscribeGroup != null && !perLinkSubscribeGroup.toString().trim().isEmpty()) {
+      subscribeGroup = perLinkSubscribeGroup.toString();
+    }
+
+    if (subscribeGroup == null || subscribeGroup.trim().isEmpty()) {
+      throw new IOException("No subscribe group configured for " + serviceType + " service");
+    }
+
+    // Parse filter_own_messages option (default: true)
+    boolean filterOwnMessages = true;
+    Object filterOwnObj = linkAttrs.get("filter_own_messages");
+    if (filterOwnObj != null) {
+      filterOwnMessages = Boolean.parseBoolean(filterOwnObj.toString());
+    }
+
+    // Parse output_format option (default: json)
+    String outputFormat = "json";
+    Object outputFormatObj = linkAttrs.get("output_format");
+    if (outputFormatObj != null) {
+      outputFormat = outputFormatObj.toString().toLowerCase();
+    }
+
+    // Create and register pull binding
+    PullBinding binding = new PullBinding(serviceType, subscribeGroup, filterOwnMessages, outputFormat);
+    denmEventHandler.registerPullBinding(destination, binding);
+
+    logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_SUCCESS,
+        "pull destination=" + destination, binding.toString());
   }
 
   @Override
@@ -354,6 +450,42 @@ public class V2xStepProtocol extends Extension {
 
     logger.log(V2xStepLogMessages.V2X_STEP_REGISTER_LOCAL_SUCCESS,
       "local=" + localNamespace + " remote=" + destination, binding.toString());
+  }
+
+  /**
+   * Handle inbound DENM received from STEP SDK.
+   * This method is called by the DenmEventHandler when a DENM event is received.
+   * It serializes the DENM and publishes it to the configured MAPS topic.
+   *
+   * @param destination The MapsMessaging topic to publish to
+   * @param denmRecord The received DENM record from SDK
+   */
+  private void handleInboundDenm(String destination, DENMRecord denmRecord) {
+    try {
+      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
+          String.format("Handling inbound DENM for destination: %s (StationID: %d, SeqNum: %d)",
+              destination, denmRecord.getOriginatorID(), denmRecord.getSequenceNumber()));
+
+      // Get the pull binding to determine output format
+      // Note: We need to access the binding from denmEventHandler, but for now we'll default to JSON
+      // A more elegant solution would be to pass the binding through the callback
+      byte[] payload = DenmRecordSerializer.toJson(denmRecord);
+
+      // Create a MAPS message object
+      Message message = new MessageBuilder()
+          .setOpaqueData(payload)
+          .build();
+
+      // Publish to the destination topic using the inbound() method from Extension base class
+      inbound(destination, message);
+
+      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
+          String.format("Published inbound DENM to topic: %s (%d bytes)", destination, payload.length));
+
+    } catch (Exception e) {
+      logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_ERROR,
+          destination, "Failed to handle inbound DENM: " + e.getMessage());
+    }
   }
 
   /**

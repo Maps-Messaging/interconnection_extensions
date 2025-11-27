@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
  */
 public class FakeLocationProvider extends LocationProvider implements Runnable {
     private static final Logger sdkLogger = LoggerFactory.getLogger(FakeLocationProvider.class);
-    private final double latitude;
-    private final double longitude;
+    private volatile double latitude;
+    private volatile double longitude;
     private Thread thread;
     private volatile boolean running;
 
@@ -39,6 +39,16 @@ public class FakeLocationProvider extends LocationProvider implements Runnable {
             try { thread.join(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         }
         sdkLogger.info("FakeLocationProvider stopped");
+    }
+
+    /**
+     * Update the location that this provider emits.
+     * This is used to match DENM message locations for geohash-based MQTT subscriptions.
+     */
+    public void updateLocation(double newLatitude, double newLongitude) {
+        this.latitude = newLatitude;
+        this.longitude = newLongitude;
+        sdkLogger.info("FakeLocationProvider updated to ({}, {})", latitude, longitude);
     }
 
     @Override
