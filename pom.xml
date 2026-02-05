@@ -58,6 +58,7 @@
         <module>pulsar-extension</module>
         <module>ibm-mq-extension</module>
         <module>v2x-step-extension</module>
+        <module>ros-extension</module>
     </modules>
     <properties>
         <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>

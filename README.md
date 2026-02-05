@@ -40,6 +40,14 @@ _(Documentation pending)_
 
 _(Documentation pending)_
 
+### ROS Extension
+
+**Module:** `ros-extension/`
+
+Bridges MAPS topics with ROS topics (ROS 1 and ROS 2 convention support) while preserving ROS message context through a schema-aware envelope convention.
+
+**Documentation:** See [ros-extension/README.md](ros-extension/README.md)
+
 ## Building
 
 Build all extensions:
