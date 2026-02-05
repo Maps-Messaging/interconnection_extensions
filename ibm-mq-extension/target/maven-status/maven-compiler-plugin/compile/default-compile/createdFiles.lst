@@ -1,0 +1,6 @@
+io/mapsmessaging/network/protocol/impl/ibm_mq/MqProtocolFactory.class
+io/mapsmessaging/network/protocol/impl/ibm_mq/MqProtocol.class
+io/mapsmessaging/network/protocol/impl/ibm_mq/MqProtocol$1.class
+io/mapsmessaging/network/protocol/impl/ibm_mq/MqLogMessages.class
+io/mapsmessaging/network/protocol/impl/ibm_mq/MqProtocol$ScheduleRunner.class
+io/mapsmessaging/network/protocol/impl/ibm_mq/MqLogMessages$MQ_CATEGORY.class

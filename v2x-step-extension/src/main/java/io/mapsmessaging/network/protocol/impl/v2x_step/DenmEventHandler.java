@@ -10,7 +10,14 @@ import io.mapsmessaging.logging.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
+
+/**
+ * Functional interface for handling inbound DENM messages with binding context.
+ */
+@FunctionalInterface
+interface DenmMessageCallback {
+  void accept(String destination, DENMRecord denmRecord, PullBinding binding);
+}
 
 /**
  * Event handler for DENM subscriptions from the V2X SDK.
@@ -21,15 +28,15 @@ public class DenmEventHandler implements EventListener {
 
   private final Logger logger;
   private final Map<String, PullBinding> pullBindings;
-  private final BiConsumer<String, DENMRecord> messageCallback;
+  private final DenmMessageCallback messageCallback;
   private long ownStationId = -1;  // Track own station ID to filter echoes
 
   /**
    * Create a new DENM event handler.
    *
-   * @param messageCallback Callback invoked when a DENM is received: (destination, denmRecord) -> void
+   * @param messageCallback Callback invoked when a DENM is received: (destination, denmRecord, binding) -> void
    */
-  public DenmEventHandler(BiConsumer<String, DENMRecord> messageCallback) {
+  public DenmEventHandler(DenmMessageCallback messageCallback) {
     this.logger = LoggerFactory.getLogger(DenmEventHandler.class);
     this.pullBindings = new ConcurrentHashMap<>();
     this.messageCallback = messageCallback;
@@ -97,7 +104,7 @@ public class DenmEventHandler implements EventListener {
 
         // Invoke callback to route message to MAPS
         try {
-          messageCallback.accept(destination, denm);
+          messageCallback.accept(destination, denm, binding);
           logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_SUCCESS,
               destination, 0); // Size will be logged by handleInboundDenm
         } catch (Exception e) {

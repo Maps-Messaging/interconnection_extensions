@@ -5,10 +5,11 @@ Agent guidance for this repository (`interconnection_extensions`).
 ## Current Repo State
 
 - Primary branch: `development`
-- Maven multi-module project with four extensions:
+- Maven multi-module project with five extensions:
   - `aws-sns-extension`
   - `ibm-mq-extension`
   - `pulsar-extension`
+  - `ros-extension`
   - `v2x-step-extension`
 - Current `origin/development` sync: no ahead/behind commits after fetch.
 
@@ -85,7 +86,32 @@ Do not treat this module as simple payload passthrough. Current behavior is:
 - `aws-sns-extension`: SNS bridge using AWS SDK v2.
 - `ibm-mq-extension`: IBM MQ bridge using `com.ibm.mq.allclient`.
 - `pulsar-extension`: Apache Pulsar bridge using `pulsar-client`.
+- `ros-extension`: ROS 1/2 bridge scaffold with schema-aware envelope convention and strict/passthrough schema modes.
 - `v2x-step-extension`: richest logic and only module with unit tests currently (`V2xStepProtocolOutboundTest`).
+
+## ROS Extension Contract (New)
+
+- Protocol name / transport: `ros`
+- Purpose:
+  - Bridge MAPS links to ROS topics with context-preserving payload handling.
+  - Preserve raw ROS payload bytes for reinjection (`contentType=application/x-ros-binary`).
+  - Emit schema metadata to support cross-protocol translation.
+
+- Schema convention emitted in MAPS `dataMap`:
+  - `maps.schema.kind = ros`
+  - `maps.schema.id = ros://<version>/<package>/<type>`
+  - `ros.version`, `ros.package`, `ros.type`, `ros.topic`
+  - `ros.md5` (ROS1, when available), `ros.qos` (ROS2, when available), `ros.context`
+
+- Config behavior:
+  - `rosVersion`: `1 | 2 | auto`
+  - `schema_mode`: `strict | passthrough` (default strict)
+  - In strict mode, `ros_type` is required for both push and pull links.
+
+- Current adapter strategy:
+  - Uses `RosClientAdapter` boundary.
+  - `ReflectiveJRosAdapter` currently provides compatibility-focused scaffold behavior and loopback testability.
+  - Live ROS runtime integration expects jrosclient jars on plugin classpath.
 
 ## Agent Working Rules for This Repo
 
@@ -148,6 +174,7 @@ Each extension includes its own client library dependency:
 - Pulsar: `org.apache.pulsar:pulsar-client`
 - AWS SNS: `software.amazon.awssdk:sns`
 - IBM MQ: IBM MQ client JARs
+- ROS: jrosclient ecosystem (runtime-provided; adapter boundary in code)
 
 ## Deployment
 
@@ -169,6 +196,7 @@ interconnection_extensions/
 ├── aws-sns-extension/             # AWS SNS extension module
 ├── ibm-mq-extension/              # IBM MQ extension module
 ├── pulsar-extension/              # Apache Pulsar extension module
+├── ros-extension/                 # ROS 1/2 extension module
 └── v2x-step-extension/            # Vodafone V2X STEP extension module
     ├── pom.xml
     ├── README.md                  # Module-specific documentation

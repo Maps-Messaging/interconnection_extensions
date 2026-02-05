@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean compile:*)",
+      "Bash(python3:*)",
+      "Bash(unzip:*)",
+      "Bash(javap:*)",
+      "Bash(jar -tf:*)",
+      "Bash(mvn dependency:tree:*)",
+      "Bash(xargs jar:*)",
+      "Bash(xargs javap:*)",
+      "Bash(mvn clean test-compile:*)",
+      "Bash(mvn clean test:*)",
+      "Bash(mvn test:*)",
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(docker-compose config:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

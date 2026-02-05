@@ -1,0 +1,4 @@
+io/mapsmessaging/network/protocol/impl/aws_sns/SnsLogMessages.class
+io/mapsmessaging/network/protocol/impl/aws_sns/SnsLogMessages$SNS_CATEGORY.class
+io/mapsmessaging/network/protocol/impl/aws_sns/SnsProtocolFactory.class
+io/mapsmessaging/network/protocol/impl/aws_sns/SnsProtocol.class

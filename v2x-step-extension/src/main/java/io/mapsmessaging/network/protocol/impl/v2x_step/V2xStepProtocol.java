@@ -245,6 +245,16 @@ public class V2xStepProtocol extends Extension {
   public void outbound(String destination, Message message) {
     logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_CALLED, destination);
 
+    // Check if this is a schema message - if so, log and return
+    // Schema topics can be $schema/ or $SCHEMA/ depending on MQTT broker normalization
+    if (destination.startsWith("$schema/") || destination.startsWith("$SCHEMA/")) {
+      byte[] payload = message.getOpaqueData();
+      logger.log(V2xStepLogMessages.V2X_STEP_INITIALIZED,
+          "Received schema update for destination: " + destination +
+          " (size: " + (payload != null ? payload.length : 0) + " bytes)");
+      return;
+    }
+
     // Log current bindings for debugging
     logger.log(V2xStepLogMessages.V2X_STEP_OUTBOUND_BINDINGS_COUNT,
         pushBindings.size(), pushBindings.keySet().toString());
@@ -455,22 +465,28 @@ public class V2xStepProtocol extends Extension {
   /**
    * Handle inbound DENM received from STEP SDK.
    * This method is called by the DenmEventHandler when a DENM event is received.
-   * It serializes the DENM and publishes it to the configured MAPS topic.
+   * It serializes the DENM to the specified format (JSON or XML) and publishes it to the configured MAPS topic.
    *
    * @param destination The MapsMessaging topic to publish to
    * @param denmRecord The received DENM record from SDK
+   * @param binding The pull binding configuration containing output format
    */
-  private void handleInboundDenm(String destination, DENMRecord denmRecord) {
+  private void handleInboundDenm(String destination, DENMRecord denmRecord, PullBinding binding) {
     try {
       logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_HANDLING, destination);
 
-      // Get the pull binding to determine output format
-      // Note: We need to access the binding from denmEventHandler, but for now we'll default to JSON
-      // A more elegant solution would be to pass the binding through the callback
-      String format = "JSON";
+      // Get the output format from the pull binding
+      String format = binding.getOutputFormat().toUpperCase();
       logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_SERIALIZING, format);
 
-      byte[] payload = DenmRecordSerializer.toJson(denmRecord);
+      // Serialize to the specified format
+      byte[] payload;
+      if ("XML".equals(format)) {
+        payload = DenmRecordSerializer.toXml(denmRecord);
+      } else {
+        // Default to JSON if format is not specified or not recognized
+        payload = DenmRecordSerializer.toJson(denmRecord);
+      }
       logger.log(V2xStepLogMessages.V2X_STEP_INBOUND_CREATING_MESSAGE, payload.length);
 
       // Create a MAPS message object
