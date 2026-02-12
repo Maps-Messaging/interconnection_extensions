@@ -46,32 +46,39 @@ Add to `NetworkConnectionManager.yaml`:
 ```yaml
 NetworkConnectionManager:
   data:
-    - name: v2x_step_denm
-      url: "step://DE_DEV_FRANKFURT"
-      protocol: v2x-step
-      plugin: true
-      config:
-        applicationId: "your-app-id"
-        applicationToken: "your-token"
-        denmService:
-          enabled: true
-          publishGroup: "DENM_TX_GROUP"
-          subscribeGroup: "DENM_RX_GROUP"
-      links:
-        - direction: push
-          local_namespace: "/v2x/outbound/denm"
-          remote_namespace: "DENM_TX_GROUP"
-          service_type: "DENM"
-          include_schema: false
-          # Optional: Custom field mappings
-          field_mappings:
-            causeCode: "denm.situation.eventType.causeCode"
-            subCauseCode: "denm.situation.eventType.subCauseCode"
-            latitude: "denm.denm.management.eventPosition.latitude"
-            longitude: "denm.denm.management.eventPosition.longitude"
-            validityDuration: "denm.denm.management.validityDuration"
-            transmissionInterval: "denm.denm.management.transmissionInterval"
-            detectionTime: "denm.denm.management.detectionTime"
+     - name: v2x_step_denm
+       url: "step://DE_DEV_FRANKFURT"
+       protocol: v2x-step
+       plugin: true
+       config:
+          applicationId: "your-app-id"
+          applicationToken: "your-token"
+          denmService:
+             enabled: true
+             publishGroup: "DENM_TX_GROUP"
+             subscribeGroup: "DENM_RX_GROUP"
+          links:
+             -
+                direction: push
+                remote_namespace: "DENM_TX_GROUP"
+                service_type: "DENM"
+                # Optional: Custom field mappings
+                field_mappings:
+                   causeCode: "denm.situation.eventType.causeCode"
+                   subCauseCode: "denm.situation.eventType.subCauseCode"
+                   latitude: "denm.denm.management.eventPosition.latitude"
+                   longitude: "denm.denm.management.eventPosition.longitude"
+                   validityDuration: "denm.denm.management.validityDuration"
+                   transmissionInterval: "denm.denm.management.transmissionInterval"
+                   detectionTime: "denm.denm.management.detectionTime"
+             -
+
+       links:
+          - direction: push
+            local_namespace: "/v2x/outbound/denm"
+            remote_namespace: "DENM_TX_GROUP"
+            include_schema: false
+
 ```
 
 ### 4. Send Messages
