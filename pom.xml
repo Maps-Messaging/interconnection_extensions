@@ -57,8 +57,15 @@
         <module>aws-sns-extension</module>
         <module>pulsar-extension</module>
         <module>ibm-mq-extension</module>
-        <module>v2x-step-extension</module>
     </modules>
+    <profiles>
+        <profile>
+            <id>with-v2x</id>
+            <modules>
+                <module>v2x-step-extension</module>
+            </modules>
+        </profile>
+    </profiles>
     <properties>
         <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>
         <maven.compiler.release>21</maven.compiler.release>
