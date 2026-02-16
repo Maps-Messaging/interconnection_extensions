@@ -28,9 +28,8 @@ NetworkConnectionManager:
   global:
 
   data:
-    -
-      # Connection name
-      name: v2x_step_connection
+    # Connection name
+    - name: v2x_step_denm
 
       # STEP instance URL - format: step://INSTANCE_NAME
       # Valid STEP instance names (embedded in the URL):
@@ -51,19 +50,19 @@ NetworkConnectionManager:
         # --- Required parameters ---
 
         # Vodafone STEP application credentials (obtain from Vodafone portal)
-        applicationId: "your-app-id-here"
-        applicationToken: "your-app-token-here"
-
+        applicationId: "your-app-id"
+        applicationToken: "your-token"
         # --- Optional parameters ---
 
         # SDK logging level (default: INFO)
+        # Valid values: TRACE, DEBUG, INFO, WARN, ERROR, OFF
         # Valid values: TRACE, DEBUG, INFO, WARN, ERROR, OFF
         sdkLogLevel: "INFO"
 
         # --- DENM Service Configuration ---
         # Currently only DENM is supported.
-
         denmService:
+
           # Enable DENM service (required: true)
           enabled: true
 
@@ -73,47 +72,52 @@ NetworkConnectionManager:
           # STEP group for subscribing to inbound DENM messages (for pull links)
           subscribeGroup: "DENM_RX_GROUP"
 
-      # Optional: Remote authentication (if required by your STEP deployment)
-      # Most STEP instances authenticate via applicationId/applicationToken only
-      # remote:
-      #   sessionId: session1
-      #   username: user
-      #   password: pass
+          # Optional: Remote authentication (if required by your STEP deployment)
+          # Most STEP instances authenticate via applicationId/applicationToken only
+          # remote:
+          #   sessionId: session1
+          #   username: user
+          #   password: pass
 
-      # Routing links - map MAPS namespaces to STEP DENM triggers
+          # Routing links - map MAPS namespaces to STEP DENM triggers
+
+        links:
+          # --- Push link (MAPS → STEP DENM trigger) ---
+
+          # Trigger DENM events from messages published to MAPS topics
+          -
+            direction: push
+            remote_namespace: "DENM_TX_GROUP"
+
+            # Service type - currently only DENM is supported
+            service_type: "DENM"
+            # Optional: Custom field mappings
+
+            # Field mappings (optional) - specify how to extract DENM parameters from payload
+            # If omitted, defaults to ETSI DENM XML structure
+            field_mappings:
+              # Cause code (ETSI ITS cause code, e.g., 2 = accident)
+              causeCode: "denm.situation.eventType.causeCode"
+              # Sub-cause code (ETSI ITS sub-cause, e.g., 0 = unavailable)
+              subCauseCode: "denm.situation.eventType.subCauseCode"
+              # Event latitude in 1/10 microdegree units (ETSI ITS format)
+              # Extension converts to decimal degrees automatically
+              latitude: "denm.denm.management.eventPosition.latitude"
+              # Event longitude in 1/10 microdegree units (ETSI ITS format)
+              longitude: "denm.denm.management.eventPosition.longitude"
+              # Validity duration in seconds
+              validityDuration: "denm.denm.management.validityDuration"
+              # Transmission interval in milliseconds
+              transmissionInterval: "denm.denm.management.transmissionInterval"
+              # Detection time in milliseconds since epoch
+              detectionTime: "denm.denm.management.detectionTime"
+
+
       links:
-        # --- Push link (MAPS → STEP DENM trigger) ---
-
-        # Trigger DENM events from messages published to MAPS topics
-        -
-          direction: push
-          # Messages published to this MAPS topic will trigger DENM events
+        - direction: push
           local_namespace: "/v2x/outbound/denm"
-          # STEP group name for publishing (matches denmService.publishGroup)
           remote_namespace: "DENM_TX_GROUP"
-          # Service type - currently only DENM is supported
-          service_type: "DENM"
-          # Schema information is not included
           include_schema: false
-
-          # Field mappings (optional) - specify how to extract DENM parameters from payload
-          # If omitted, defaults to ETSI DENM XML structure
-          field_mappings:
-            # Cause code (ETSI ITS cause code, e.g., 2 = accident)
-            causeCode: "denm.situation.eventType.causeCode"
-            # Sub-cause code (ETSI ITS sub-cause, e.g., 0 = unavailable)
-            subCauseCode: "denm.situation.eventType.subCauseCode"
-            # Event latitude in 1/10 microdegree units (ETSI ITS format)
-            # Extension converts to decimal degrees automatically
-            latitude: "denm.denm.management.eventPosition.latitude"
-            # Event longitude in 1/10 microdegree units (ETSI ITS format)
-            longitude: "denm.denm.management.eventPosition.longitude"
-            # Validity duration in seconds
-            validityDuration: "denm.denm.management.validityDuration"
-            # Transmission interval in milliseconds
-            transmissionInterval: "denm.denm.management.transmissionInterval"
-            # Detection time in milliseconds since epoch
-            detectionTime: "denm.denm.management.detectionTime"
 
         # Example: Custom field mappings for non-ETSI payload format
         # -
