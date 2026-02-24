@@ -73,6 +73,7 @@
         <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
 
         <!-- Base -->
+        <maps.core.version>4.3.1-SNAPSHOT</maps.core.version>
         <maps.logging.version>2.1.2-SNAPSHOT</maps.logging.version>
         <maps.jms_selector.version>2.1.1-SNAPSHOT</maps.jms_selector.version>
         <maps.nolc.version>1.2.1-SNAPSHOT</maps.nolc.version>
@@ -194,7 +195,7 @@
         <dependency>
             <groupId>io.mapsmessaging</groupId>
             <artifactId>maps</artifactId>
-            <version>4.3.1-SNAPSHOT</version>
+            <version>${maps.core.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
