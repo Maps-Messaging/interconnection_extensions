@@ -40,6 +40,14 @@ _(Documentation pending)_
 
 _(Documentation pending)_
 
+### Kafka Extension
+
+**Module:** `kafka-extension/`
+
+Bidirectional Apache Kafka bridge with configurable per-link routing rules (key strategy, partition, headers, and consumer overrides).
+
+**Documentation:** See [kafka-extension/README.md](kafka-extension/README.md)
+
 ### ROS Extension
 
 **Module:** `ros-extension/`
@@ -69,6 +77,80 @@ mvn clean install
 4. Restart MapsMessaging server
 
 See individual extension README files for specific deployment instructions.
+
+## Ops Quickstart (Kafka)
+
+For full Kafka dependency placement, runtime library requirements, and contribution guidance, see:
+
+- [kafka-extension/README.md](kafka-extension/README.md)
+
+### Basic Kafka bridge config
+
+```yaml
+NetworkConnectionManager:
+  global:
+
+  data:
+    -
+      name: kafka_connection
+      url: "kafka://localhost:9092"
+      protocol: kafka
+      plugin: true
+      config:
+        bootstrapServers: "localhost:9092"
+        clientId: "maps-kafka-bridge"
+        groupId: "maps-kafka-consumers"
+        loopGuard.enabled: true
+        loopGuard.maxHops: 8
+      links:
+        - direction: pull
+          remote_namespace: "raw.events"
+          local_namespace: "/streams/in/raw"
+          include_schema: false
+        - direction: push
+          local_namespace: "/streams/out/enriched"
+          remote_namespace: "enriched.events"
+          include_schema: false
+          routing.key_source: "header"
+          routing.key_header: "tenantId"
+```
+
+### CloudEvent pipeline config
+
+```yaml
+NetworkConnectionManager:
+  global:
+
+  data:
+    -
+      name: kafka_cloudevents_connection
+      url: "kafka://localhost:9092"
+      protocol: kafka
+      plugin: true
+      config:
+        bootstrapServers: "localhost:9092"
+        loopGuard.enabled: true
+        loopGuard.maxHops: 8
+      links:
+        - direction: pull
+          remote_namespace: "raw.telemetry"
+          local_namespace: "/cloudevents/in/raw"
+          include_schema: false
+          group_id: "maps-kafka-ce-raw"
+        - direction: push
+          local_namespace: "/cloudevents/out/wrapped"
+          remote_namespace: "events.cloudevents"
+          include_schema: false
+          cloud_event.mode: "wrap"
+          cloud_event.type: "io.maps.telemetry.event"
+          cloud_event.source: "/maps/telemetry"
+        - direction: push
+          local_namespace: "/cloudevents/out/final"
+          remote_namespace: "events.final"
+          include_schema: false
+          routing.key_source: "header"
+          routing.key_header: "tenantId"
+```
 
 ## Development Requirements
 

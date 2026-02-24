@@ -1,0 +1,157 @@
+#
+# Copyright [ 2020 - 2024 ] [Matthew Buckton]
+# Copyright [ 2024 - 2026 ] [Maps Messaging B.V.]
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+
+---
+NetworkConnectionManager:
+  global:
+
+  data:
+    -
+      name: local_kafka
+      url: "kafka://localhost:9092/"
+      protocol: kafka
+      plugin: true
+      config:
+        bootstrapServers: "localhost:9092"
+        clientId: "maps-kafka-bridge"
+        groupId: "maps-kafka-consumers"
+        acks: "all"
+        retries: 5
+        lingerMs: 10
+        enableIdempotence: true
+        enableAutoCommit: false
+        offsetReset: "earliest"
+        maxPollRecords: 500
+        pollTimeoutMs: 250
+        pollIntervalMs: 200
+        loopGuard.enabled: true
+        loopGuard.maxHops: 8
+
+        # Optional security
+        # securityProtocol: "SASL_SSL"
+        # saslMechanism: "PLAIN"
+        # saslJaasConfig: "org.apache.kafka.common.security.plain.PlainLoginModule required username='maps' password='maps-secret';"
+        # sslTruststoreLocation: "/opt/maps/secrets/kafka.truststore.jks"
+        # sslTruststorePassword: "changeit"
+
+        # Optional global routing defaults (overridable per link)
+        routing.key_source: "none"        # none | fixed | header | correlation | local_namespace
+        routing.key_header: "tenantId"
+        routing.key_value: "maps-default-key"
+        routing.partition: 0
+        routing.timestamp_source: "now"   # none | now | message
+        routing.headers:
+          x-origin: "maps"
+          x-environment: "dev"
+
+      remote:
+        sessionId: kafka-01
+        username: maps
+        password: not-used-by-kafka-client
+
+      links:
+        # Push: telemetry events -> kafka topic (rule: message header tenantId as key)
+        -
+          direction: push
+          local_namespace: "/telematics/outbound"
+          remote_namespace: "vehicle.telemetry.events"
+          include_schema: false
+          routing.key_source: "header"
+          routing.key_header: "tenantId"
+          routing.partition: 2
+          routing.headers:
+            x-route: "telematics"
+            x-format: "json"
+
+        # Push: audit trail -> kafka topic (rule: fixed key)
+        -
+          direction: push
+          local_namespace: "/audit/outbound"
+          remote_namespace: "platform.audit.events"
+          include_schema: false
+          routing.key_source: "fixed"
+          routing.key_value: "audit"
+          routing.headers:
+            x-route: "audit"
+
+        # Pull: kafka command topic -> MAPS namespace (consumer override)
+        -
+          direction: pull
+          remote_namespace: "vehicle.commands.dispatch"
+          local_namespace: "/telematics/inbound/commands"
+          include_schema: false
+          group_id: "maps-kafka-commands"
+          offset_reset: "latest"
+          max_poll_records: 100
+
+        # Pull: kafka alert topic -> MAPS namespace
+        - 
+          direction: pull
+          remote_namespace: "vehicle.alerts"
+          local_namespace: "/telematics/inbound/alerts"
+          include_schema: false
+          group_id: "maps-kafka-alerts"
+          offset_reset: "earliest"
+          max_poll_records: 200
+
+        # Stream processing pattern:
+        # 1) Pull raw events into MAPS namespace for transformation
+        - 
+          direction: pull
+          remote_namespace: "raw.events"
+          local_namespace: "/streams/in/raw"
+          include_schema: false
+          group_id: "maps-kafka-raw-events"
+          offset_reset: "earliest"
+
+        # 2) Push transformed output back into a different Kafka namespace
+        - 
+          direction: push
+          local_namespace: "/streams/out/enriched"
+          remote_namespace: "enriched.events"
+          include_schema: false
+          routing.key_source: "header"
+          routing.key_header: "tenantId"
+          loop.allow_same_topic: false
+
+        # CloudEvent transformation pattern:
+        # 1) Pull raw Kafka events into MAPS
+        - 
+          direction: pull
+          remote_namespace: "raw.telemetry"
+          local_namespace: "/cloudevents/in/raw"
+          include_schema: false
+          group_id: "maps-kafka-ce-raw"
+
+        # 2) Publish MAPS events as CloudEvents to an intermediate topic
+        - 
+          direction: push
+          local_namespace: "/cloudevents/out/wrapped"
+          remote_namespace: "events.cloudevents"
+          include_schema: false
+          cloud_event.mode: "wrap"
+          cloud_event.type: "io.maps.telemetry.event"
+          cloud_event.source: "/maps/telemetry"
+
+        # 3) Publish transformed or normalized output back to Kafka
+        - 
+          direction: push
+          local_namespace: "/cloudevents/out/final"
+          remote_namespace: "events.final"
+          include_schema: false
+          routing.key_source: "header"
+          routing.key_header: "tenantId"

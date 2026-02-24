@@ -77,6 +77,59 @@ NetworkConnectionManager:
     #       local_namespace: "/pulsar/inbound"
     #       include_schema: false
 
+    # Example: Apache Kafka Extension
+    # Uncomment and configure the section below to enable Kafka integration
+    #
+    # -
+    #   name: kafka_connection
+    #   url: "kafka://localhost:9092"
+    #   protocol: kafka
+    #   plugin: true
+    #   config:
+    #     bootstrapServers: "localhost:9092"
+    #     clientId: "maps-kafka-bridge"
+    #     groupId: "maps-kafka-consumers"
+    #     offsetReset: "earliest"
+    #     loopGuard.enabled: true
+    #     loopGuard.maxHops: 8
+    #     pollTimeoutMs: 250
+    #     pollIntervalMs: 200
+    #   links:
+    #     - direction: push
+    #       local_namespace: "/kafka/outbound"
+    #       remote_namespace: "maps.events"
+    #       include_schema: false
+    #       routing.key_source: "header"
+    #       routing.key_header: "tenantId"
+    #       routing.partition: 1
+    #       routing.headers:
+    #         x-origin: "maps"
+    #     - direction: pull
+    #       remote_namespace: "maps.commands"
+    #       local_namespace: "/kafka/inbound"
+    #       include_schema: false
+    #       group_id: "maps-kafka-commands"
+    #       offset_reset: "latest"
+    #       max_poll_records: 100
+    #     - direction: pull
+    #       remote_namespace: "raw.events"
+    #       local_namespace: "/streams/in/raw"
+    #       include_schema: false
+    #     - direction: push
+    #       local_namespace: "/streams/out/enriched"
+    #       remote_namespace: "enriched.events"
+    #       include_schema: false
+    #       routing.key_source: "header"
+    #       routing.key_header: "tenantId"
+    #       loop.allow_same_topic: false
+    #     - direction: push
+    #       local_namespace: "/cloudevents/out/wrapped"
+    #       remote_namespace: "events.cloudevents"
+    #       include_schema: false
+    #       cloud_event.mode: "wrap"
+    #       cloud_event.type: "io.maps.telemetry.event"
+    #       cloud_event.source: "/maps/telemetry"
+
     # Example: AWS SNS Extension
     # Uncomment and configure the section below to enable AWS SNS integration
     #
@@ -134,5 +187,6 @@ NetworkConnectionManager:
 # 4. See individual extension README files for detailed configuration options:
 #    - v2x-step-extension/README.md
 #    - pulsar-extension/README.md (pending)
+#    - kafka-extension/README.md
 #    - aws-sns-extension/README.md (pending)
 #    - ibm-mq-extension/README.md (pending)
