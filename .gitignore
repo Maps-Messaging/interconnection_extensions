@@ -1,0 +1,26 @@
+# Build outputs
+target/
+*.class
+*.jar
+!**/src/**/lib/*.jar
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Local / machine-specific
+.claude/settings.local.json
+
+# Logs and temp
+*.log
+*.log.gz
+*.tmp
+*.bak
+*~
+
+# OS
+.DS_Store
+Thumbs.db
