@@ -48,6 +48,22 @@ Bidirectional Apache Kafka bridge with configurable per-link routing rules (key 
 
 **Documentation:** See [kafka-extension/README.md](kafka-extension/README.md)
 
+### Redis Extension
+
+**Module:** `redis-extension/`
+
+Redis Pub/Sub and Streams bridge using Lettuce, including a Redis -> MAPS -> CloudEvent -> MAPS -> Redis round-trip test harness that verifies payload, header, and typed metadata preservation.
+Includes pull-side Pub/Sub and Streams consumer-group support with configurable stream polling and reconnect backoff controls.
+Also supports MAPS-native pull metrics publication (`redis.metrics.*`) with alert thresholds for reconnect churn and stream pending depth.
+Stream pull tuning is configurable per link (or top-level defaults) with:
+`redis.stream.poll_ms` (default `500`), `redis.stream.min_poll_ms` (default `100`),
+`redis.stream.batch_size` (default `32`), and `redis.stream.pending_sample_every` (default `1`).
+Performance baselines are available in `redis-extension` as `@Tag("perf")` tests and can be run with `mvn -pl redis-extension -Dgroups=perf test`.
+
+**Documentation and tested examples:** See [redis-extension/README.md](redis-extension/README.md)
+
+**Example Configuration:** [redis-extension/src/main/resources/NetworkConnectionManager-example.yaml](redis-extension/src/main/resources/NetworkConnectionManager-example.yaml)
+
 ### ROS Extension
 
 **Module:** `ros-extension/`

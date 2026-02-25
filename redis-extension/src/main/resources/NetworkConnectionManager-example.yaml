@@ -1,0 +1,73 @@
+---
+NetworkConnectionManager:
+  global:
+
+  data:
+    -
+      name: local_redis
+      url: "redis://localhost:6379/"
+      protocol: redis
+      plugin: true
+      config:
+        redis.mode: "pubsub"
+        redis.reconnect.initial_ms: 250
+        redis.reconnect.max_ms: 5000
+        redis.metrics.enabled: true
+        redis.metrics.namespace: "/metrics/redis/pull"
+        redis.metrics.publish_ms: 5000
+        redis.alert.pending_threshold: 100
+        redis.alert.reconnect_delta_threshold: 1
+        # Optional stream defaults applied unless overridden per link:
+        # redis.stream.min_poll_ms: 100
+        # redis.stream.pending_sample_every: 1
+
+      remote:
+        sessionId: redis-01
+        username: maps
+        password: maps
+
+      links:
+        -
+          direction: push
+          local_namespace: "/redis/outbound/raw"
+          remote_namespace: "events.raw"
+          redis.mode: "pubsub"
+
+        -
+          direction: pull
+          remote_namespace: "events.inbound"
+          local_namespace: "/redis/inbound/raw"
+          redis.mode: "pubsub"
+
+        -
+          direction: push
+          local_namespace: "/redis/outbound/cloudevent"
+          remote_namespace: "events.cloudevents"
+          redis.mode: "stream"
+          cloud_event.mode: "wrap"
+          cloud_event.type: "io.maps.redis.event"
+          cloud_event.source: "/maps/redis"
+
+        -
+          direction: pull
+          remote_namespace: "stream.inbound"
+          local_namespace: "/redis/inbound/stream"
+          redis.mode: "stream"
+          redis.stream.group: "maps-redis-group"
+          redis.stream.consumer: "maps-redis-consumer"
+          redis.stream.poll_ms: 500
+          redis.stream.min_poll_ms: 100
+          redis.stream.batch_size: 32
+          redis.stream.pending_sample_every: 1
+
+        -
+          direction: pull
+          remote_namespace: "stream.inbound.fast"
+          local_namespace: "/redis/inbound/stream/fast"
+          redis.mode: "stream"
+          redis.stream.group: "maps-redis-group-fast"
+          redis.stream.consumer: "maps-redis-consumer-fast"
+          redis.stream.poll_ms: 25
+          redis.stream.min_poll_ms: 1
+          redis.stream.batch_size: 256
+          redis.stream.pending_sample_every: 20

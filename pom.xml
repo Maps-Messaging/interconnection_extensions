@@ -57,6 +57,7 @@
         <module>aws-sns-extension</module>
         <module>pulsar-extension</module>
         <module>kafka-extension</module>
+        <module>redis-extension</module>
         <module>ibm-mq-extension</module>
         <module>v2x-step-extension</module>
         <module>ros-extension</module>
