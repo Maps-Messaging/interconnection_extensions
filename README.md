@@ -40,6 +40,14 @@ _(Documentation pending)_
 
 _(Documentation pending)_
 
+### ROS Extension
+
+**Module:** `ros-extension/`
+
+Bridges MAPS topics with ROS2 topics using `jros2client`, preserving ROS message context through a schema-aware MAPS message convention. The current implementation is focused on ROS2/Nav2 topic transport and monitoring; it does not implement Nav2 planning, service calls, or action goal orchestration.
+
+**Documentation:** See [ros-extension/README.md](ros-extension/README.md)
+
 ## Building
 
 Build all extensions:
@@ -49,8 +57,7 @@ mvn clean install
 
 Build a specific extension:
 ```bash
-cd v2x-step-extension
-mvn clean install
+mvn -pl ros-extension clean install
 ```
 
 ## Deployment
