@@ -112,34 +112,54 @@ public class JRos2ClientAdapter {
     Class<? extends Message> messageClass = resolveMessageClass(binding.rosPackage(), binding.rosType());
     SubscriberQos qos = subscriberQos(binding.rosQosProfile());
     try {
-      client.subscribe(qos, new TopicSubscriber<>((Class<Message>) messageClass, binding.rosTopic()) {
-          @Override
-          public void onNext(Message message) {
-              byte[] payload = serializer.write(message);
-              RosMessageEnvelope envelope = new RosMessageEnvelope(
-                      binding.rosTopic(),
-                      binding.rosVersion(),
-                      binding.rosPackage(),
-                      binding.rosType(),
-                      null, null, null,
-                      RosSchemaConvention.schemaId(binding.rosVersion(), binding.rosPackage(), binding.rosType()),
-                      payload);
-              try {
-                  listener.onMessage(envelope);
-              } catch (IOException e) {
-                  logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + e.getMessage());
-              }
-          }
-
-          @Override
-          public void onError(Throwable throwable) {
-              logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + throwable.getMessage());
-          }
-      });
+      client.subscribe(qos, buildSubscriber((Class<Message>) messageClass, binding, listener));
       logger.log(RosLogMessages.ROS_QOS_APPLIED, binding.rosTopic() + " qos=" + qosLabel(binding.rosQosProfile()));
     } catch (JRosClientException e) {
       throw new IOException("Failed to subscribe to ROS topic " + binding.rosTopic(), e);
     }
+  }
+
+  /**
+   * Builds the Flow.Subscriber for a pull binding. Package-private so that unit tests can drive it
+   * directly without requiring a live ROS2 connection.
+   *
+   * <p>{@code TopicSubscriber.onSubscribe()} calls {@code subscription.request(initNumOfMessages)}
+   * (default 1) and {@code TopicSubscriber.onNext()} only updates a telemetry counter — it does
+   * NOT re-issue demand. Without the explicit {@code getSubscription().ifPresent(s -> s.request(1))}
+   * call in {@code onNext()}, demand drops to 0 after the first delivery and the DDS publisher
+   * stops sending further messages.
+   */
+  <M extends Message> TopicSubscriber<M> buildSubscriber(
+      Class<M> messageClass, RosPullBinding binding, RosMessageListener listener) {
+    return new TopicSubscriber<>(messageClass, binding.rosTopic()) {
+      @Override
+      public void onNext(M message) {
+        byte[] payload = serializer.write(message);
+        RosMessageEnvelope envelope = new RosMessageEnvelope(
+            binding.rosTopic(),
+            binding.rosVersion(),
+            binding.rosPackage(),
+            binding.rosType(),
+            null, null, null,
+            RosSchemaConvention.schemaId(binding.rosVersion(), binding.rosPackage(), binding.rosType()),
+            payload);
+        try {
+          listener.onMessage(envelope);
+        } catch (IOException e) {
+          logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + e.getMessage());
+        }
+        super.onNext(message); // update jrosclient received-messages telemetry counter
+        // Re-issue demand for the next message. TopicSubscriber.onSubscribe() calls request(1)
+        // once; without this call the subscription demand stays at 0 after the first delivery
+        // and no further messages are received from the DDS publisher.
+        getSubscription().ifPresent(s -> s.request(1));
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+        logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + throwable.getMessage());
+      }
+    };
   }
 
   public void publish(String topic, RosMessageEnvelope envelope) throws IOException {
