@@ -108,7 +108,7 @@ public class RosProtocol extends Extension {
   }
 
   @Override
-  public void registerRemoteLink(@NotNull String destination, String filter) throws IOException {
+  public void registerRemoteLink(@NotNull String destination, String filter, Map<String,Object> linkProperties) throws IOException {
     if (isSchemaDestination(destination)) {
       return;
     }
@@ -135,7 +135,7 @@ public class RosProtocol extends Extension {
   }
 
   @Override
-  public void registerLocalLink(@NotNull String destination) throws IOException {
+  public void registerLocalLink(@NotNull String destination, Map<String,Object> linkProperties) throws IOException {
     if (isSchemaDestination(destination)) {
       return;
     }

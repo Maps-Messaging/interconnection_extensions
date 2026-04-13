@@ -17,6 +17,7 @@ import lombok.NonNull;
 import pinorobotics.rtpstalk.RtpsTalkConfiguration;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Map;
@@ -75,16 +76,23 @@ public class JRos2ClientAdapter {
       builder.domainId(rosDomainId);
     }
 
-    String networkInterfaceName = config.networkInterface();
-    if (networkInterfaceName != null) {
+    String networkInterfaceValue = this.config.networkInterface();
+    if (networkInterfaceValue != null) {
       try {
-        NetworkInterface networkInterface = NetworkInterface.getByName(networkInterfaceName);
+        NetworkInterface networkInterface = NetworkInterface.getByName(networkInterfaceValue);
+
         if (networkInterface == null) {
-          throw new IOException("network_interface not found: " + networkInterfaceName);
+          InetAddress inetAddress = InetAddress.getByName(networkInterfaceValue);
+          networkInterface = NetworkInterface.getByInetAddress(inetAddress);
         }
+
+        if (networkInterface == null) {
+          throw new IOException("network_interface not found: " + networkInterfaceValue);
+        }
+
         builder.networkInterface(networkInterface);
-      } catch (SocketException e) {
-        throw new IOException("Failed to resolve network_interface: " + networkInterfaceName, e);
+      } catch (Exception e) {
+        throw new IOException("network_interface not found: " + networkInterfaceValue);
       }
     }
 
