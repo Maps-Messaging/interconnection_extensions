@@ -108,11 +108,13 @@ public class RosProtocol extends Extension {
   }
 
   @Override
-  public void registerRemoteLink(@NotNull String destination, String filter, Map<String,Object> linkProperties) throws IOException {
+  public void registerRemoteLink(@NotNull String destination, String filter, Map<String,Object> attrs) throws IOException {
     if (isSchemaDestination(destination)) {
       return;
     }
-    Map<String, Object> attrs = findLinkAttributes(destination, "pull");
+    if(attrs == null){
+      attrs = findLinkAttributes(destination, "pull");
+    }
     if (attrs == null) {
       attrs = protocolConfig.getConfig();
     }
@@ -135,11 +137,13 @@ public class RosProtocol extends Extension {
   }
 
   @Override
-  public void registerLocalLink(@NotNull String destination, Map<String,Object> linkProperties) throws IOException {
+  public void registerLocalLink(@NotNull String destination, Map<String,Object> attrs) throws IOException {
     if (isSchemaDestination(destination)) {
       return;
     }
-    Map<String, Object> attrs = findLinkAttributes(destination, "push");
+    if(attrs == null){
+      attrs = findLinkAttributes(destination, "push");
+    }
     if (attrs == null) {
       attrs = protocolConfig.getConfig();
     }
@@ -222,16 +226,6 @@ public class RosProtocol extends Extension {
   }
 
   static RosPullBinding buildPullBinding(String destination, Map<String, Object> attrs, RosBridgeConfig bridgeConfig) throws IOException {
-    String localNamespace = asString(attrs.get("local_namespace"));
-    if (localNamespace == null || localNamespace.isEmpty()) {
-      throw new IOException("local_namespace is required for pull link: " + destination);
-    }
-
-    String rosTopic = asString(attrs.get("ros_topic"));
-    if (rosTopic == null || rosTopic.isEmpty()) {
-      rosTopic = destination;
-    }
-
     String rosVersion = normalizeRosVersion(
         firstNonBlank(asString(attrs.get("ros_version")), bridgeConfig.rosVersion().name()),
         destination,
@@ -254,7 +248,7 @@ public class RosProtocol extends Extension {
 
     String rosQosProfile = asString(attrs.get("ros_qos"));
 
-    return new RosPullBinding(localNamespace, rosTopic, rosVersion, rosPackage, rosType, rosQosProfile);
+    return new RosPullBinding(destination, destination, rosVersion, rosPackage, rosType, rosQosProfile);
   }
 
   private static String asString(Object value) {
