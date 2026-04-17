@@ -647,8 +647,8 @@ class MapsRos2MessageTypesIT {
         .append("      plugin: true\n")
         .append("      links:\n");
     for (MessageCase messageCase : cases) {
-      appendEndpointLink(builder, "pull", messageCase.mapsTopic(), messageCase.rosTopic());
-      appendEndpointLink(builder, "push", messageCase.outboundMapsTopic(), messageCase.outboundRosTopic());
+      appendLink(builder, "pull", messageCase.mapsTopic(), messageCase.rosTopic(), messageCase);
+      appendLink(builder, "push", messageCase.outboundMapsTopic(), messageCase.outboundRosTopic(), messageCase);
     }
     builder.append("      config:\n")
         .append("        rosVersion: 2\n")
@@ -657,20 +657,30 @@ class MapsRos2MessageTypesIT {
         .append("        network_interface: eth0\n")
         .append("        links:\n");
     for (MessageCase messageCase : cases) {
-      appendConfigLink(builder, "pull", messageCase.mapsTopic(), messageCase.rosTopic(), messageCase);
-      appendConfigLink(builder, "push", messageCase.outboundMapsTopic(), messageCase.outboundRosTopic(), messageCase);
+      appendExtensionLink(builder, "pull", messageCase.mapsTopic(), messageCase.rosTopic(), messageCase);
+      appendExtensionLink(builder, "push", messageCase.outboundMapsTopic(), messageCase.outboundRosTopic(), messageCase);
     }
     return builder.toString();
   }
 
-  private static void appendEndpointLink(StringBuilder builder, String direction, String mapsTopic, String rosTopic) {
+  private static void appendLink(
+      StringBuilder builder,
+      String direction,
+      String mapsTopic,
+      String rosTopic,
+      MessageCase messageCase) {
     builder.append("        - direction: ").append(direction).append("\n")
         .append("          local_namespace: \"").append(mapsTopic).append("\"\n")
         .append("          remote_namespace: \"").append(rosTopic).append("\"\n")
-        .append("          include_schema: true\n");
+        .append("          include_schema: true\n")
+        .append("          linkProperties:\n")
+        .append("            ros_topic: \"").append(rosTopic).append("\"\n")
+        .append("            ros_version: \"2\"\n")
+        .append("            ros_package: \"").append(messageCase.rosPackage()).append("\"\n")
+        .append("            ros_type: \"").append(messageCase.rosType()).append("\"\n");
   }
 
-  private static void appendConfigLink(
+  private static void appendExtensionLink(
       StringBuilder builder,
       String direction,
       String mapsTopic,

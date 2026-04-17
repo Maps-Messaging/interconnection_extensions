@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SubscriberBackpressureTest {
 
   private static final RosBridgeConfig CONFIG = new RosBridgeConfig(
-      RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+      RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
   private static final RosPullBinding STRING_BINDING =
       new RosPullBinding("/maps/chatter", "/chatter", "2", "std_msgs", "String", null);
@@ -157,6 +157,33 @@ class SubscriberBackpressureTest {
       assertEquals("seq-" + i, payloads.get(i),
           "Message at index " + i + " arrived out of order or is missing");
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // JSON payload format
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void subscriberWithJsonFormatShouldProduceJsonPayload() {
+    RosBridgeConfig jsonConfig = new RosBridgeConfig(
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.JSON, null, null);
+    JRos2ClientAdapter jsonAdapter = new JRos2ClientAdapter(
+        LoggerFactory.getLogger(SubscriberBackpressureTest.class), jsonConfig);
+
+    List<RosMessageEnvelope> received = new ArrayList<>();
+    TopicSubscriber<StringMessage> subscriber = jsonAdapter.buildSubscriber(
+        StringMessage.class, STRING_BINDING, received::add);
+
+    subscriber.onSubscribe(new TestSubscription());
+
+    StringMessage msg = new StringMessage();
+    msg.data = "hello-json";
+    subscriber.onNext(msg);
+
+    assertEquals(1, received.size());
+    String json = new String(received.get(0).payload(), java.nio.charset.StandardCharsets.UTF_8);
+    assertTrue(json.contains("hello-json"), "JSON payload must contain the message data; got: " + json);
   }
 
   // ---------------------------------------------------------------------------

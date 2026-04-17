@@ -53,9 +53,28 @@ Important fields:
 - `ros_domain_id`: optional ROS2 DDS domain override
 - `network_interface`: optional network interface name for DDS traffic (for example `eth0`)
 - `schema_mode`: `strict` (default) or `passthrough`
-- Per-link: `ros_topic`, `ros_version`, `ros_package`, `ros_type`, `ros_qos`
+- Per-link `linkProperties`: `ros_topic`, `ros_version`, `ros_package`, `ros_type`, `ros_qos`
 
-In strict mode, both `ros_package` and `ros_type` are required on push and pull links.
+In strict mode, both `ros_package` and `ros_type` are required for push and pull links.
+
+The upstream MAPS configuration model treats these as extension-specific link properties, so they
+must be nested under `linkProperties` on each link rather than placed directly on the link object.
+
+Example:
+
+```yaml
+links:
+  - direction: pull
+    local_namespace: "/maps/ros/odom"
+    remote_namespace: "/odom"
+    include_schema: true
+    linkProperties:
+      ros_topic: "/odom"
+      ros_version: "2"
+      ros_package: "nav_msgs"
+      ros_type: "Odometry"
+      ros_qos: "sensor_data"
+```
 
 ### Per-link QoS (`ros_qos`)
 
@@ -72,7 +91,7 @@ Matching the QoS profile to the publisher is important for subscription success.
 sensor topics such as `/scan` and `/odom` use `BEST_EFFORT`; connecting with `RELIABLE`
 will receive no messages.
 
-Action feedback links use the action base topic in configuration. For example, configure
+Action feedback links use the action base topic in `linkProperties`. For example, configure
 `ros_topic: "/navigate_to_pose"` with `ros_package: "nav2_msgs/action"` and
 `ros_type: "NavigateToPose_FeedbackMessage"`. The jROS action metadata maps that base topic to the
 ROS2 feedback topic (`/navigate_to_pose/_action/feedback`).

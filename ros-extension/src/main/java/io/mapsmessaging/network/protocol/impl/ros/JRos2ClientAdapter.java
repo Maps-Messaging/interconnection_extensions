@@ -7,6 +7,7 @@ import id.jros2client.qos.PublisherQos;
 import id.jros2client.qos.QosDurability;
 import id.jros2client.qos.QosReliability;
 import id.jros2client.qos.SubscriberQos;
+import com.google.gson.Gson;
 import id.jros2messages.Ros2MessageSerializationUtils;
 import id.jrosclient.TopicSubmissionPublisher;
 import id.jrosclient.TopicSubscriber;
@@ -19,7 +20,7 @@ import pinorobotics.rtpstalk.RtpsTalkConfiguration;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -35,6 +36,7 @@ public class JRos2ClientAdapter {
   private final Logger logger;
   private final RosBridgeConfig config;
   private final Ros2MessageSerializationUtils serializer = new Ros2MessageSerializationUtils();
+  private final Gson gson = new Gson();
   private final Map<String, PublisherHolder> publishers = new ConcurrentHashMap<>();
   private volatile JRos2Client client;
 
@@ -142,7 +144,9 @@ public class JRos2ClientAdapter {
     return new TopicSubscriber<>(messageClass, binding.rosTopic()) {
       @Override
       public void onNext(M message) {
-        byte[] payload = serializer.write(message);
+        byte[] payload = config.payloadFormat() == RosBridgeConfig.PayloadFormat.JSON
+            ? gson.toJson(message).getBytes(StandardCharsets.UTF_8)
+            : serializer.write(message);
         RosMessageEnvelope envelope = new RosMessageEnvelope(
             binding.rosTopic(),
             binding.rosVersion(),
@@ -177,7 +181,9 @@ public class JRos2ClientAdapter {
       throw new IOException("Publisher not registered for topic: " + topic);
     }
     try {
-      Message message = serializer.read(envelope.payload(), holder.messageClass);
+      Message message = config.payloadFormat() == RosBridgeConfig.PayloadFormat.JSON
+          ? gson.fromJson(new String(envelope.payload(), StandardCharsets.UTF_8), holder.messageClass)
+          : serializer.read(envelope.payload(), holder.messageClass);
       @SuppressWarnings("unchecked")
       TopicSubmissionPublisher<Message> publisher = (TopicSubmissionPublisher<Message>) holder.publisher;
       publisher.submit(message);

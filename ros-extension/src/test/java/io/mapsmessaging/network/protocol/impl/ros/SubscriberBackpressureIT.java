@@ -404,7 +404,12 @@ class SubscriberBackpressureIT {
       sb.append("        - direction: pull\n")
           .append("          local_namespace: \"").append(tc.mapsTopic()).append("\"\n")
           .append("          remote_namespace: \"").append(tc.rosTopic()).append("\"\n")
-          .append("          include_schema: true\n");
+          .append("          include_schema: true\n")
+          .append("          linkProperties:\n")
+          .append("            ros_topic: \"").append(tc.rosTopic()).append("\"\n")
+          .append("            ros_version: \"2\"\n")
+          .append("            ros_package: \"").append(tc.rosPackage()).append("\"\n")
+          .append("            ros_type: \"").append(tc.rosType()).append("\"\n");
     }
     sb.append("      config:\n")
         .append("        rosVersion: 2\n")

@@ -31,6 +31,48 @@ class RosBridgeConfigTest {
     assertEquals("eth0", parsed.networkInterface());
   }
 
+  // ---------------------------------------------------------------------------
+  // PayloadFormat parsing
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void shouldDefaultPayloadFormatToCdr() {
+    RosBridgeConfig parsed = RosBridgeConfig.fromMap(new HashMap<>());
+    assertEquals(RosBridgeConfig.PayloadFormat.CDR, parsed.payloadFormat());
+  }
+
+  @Test
+  void shouldParsePayloadFormatJson() {
+    Map<String, Object> config = new HashMap<>();
+    config.put("payload_format", "json");
+    RosBridgeConfig parsed = RosBridgeConfig.fromMap(config);
+    assertEquals(RosBridgeConfig.PayloadFormat.JSON, parsed.payloadFormat());
+  }
+
+  @Test
+  void shouldParsePayloadFormatJsonCaseInsensitive() {
+    Map<String, Object> config = new HashMap<>();
+    config.put("payload_format", "JSON");
+    RosBridgeConfig parsed = RosBridgeConfig.fromMap(config);
+    assertEquals(RosBridgeConfig.PayloadFormat.JSON, parsed.payloadFormat());
+  }
+
+  @Test
+  void shouldParsePayloadFormatCdrExplicitly() {
+    Map<String, Object> config = new HashMap<>();
+    config.put("payload_format", "cdr");
+    RosBridgeConfig parsed = RosBridgeConfig.fromMap(config);
+    assertEquals(RosBridgeConfig.PayloadFormat.CDR, parsed.payloadFormat());
+  }
+
+  @Test
+  void unknownPayloadFormatShouldFallBackToCdr() {
+    Map<String, Object> config = new HashMap<>();
+    config.put("payload_format", "protobuf");
+    RosBridgeConfig parsed = RosBridgeConfig.fromMap(config);
+    assertEquals(RosBridgeConfig.PayloadFormat.CDR, parsed.payloadFormat());
+  }
+
   @Test
   void shouldFallbackToCamelCaseKeys() {
     Map<String, Object> config = new HashMap<>();
@@ -68,6 +110,7 @@ class RosBridgeConfigTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         -1,
         null
     );
@@ -82,6 +125,7 @@ class RosBridgeConfigTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         null,
         null
     );
@@ -106,6 +150,7 @@ class RosBridgeConfigTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         null,
         "eth_this_interface_does_not_exist_xyz"
     );
@@ -122,7 +167,7 @@ class RosBridgeConfigTest {
   @Test
   void strictPushBindingShouldRequireRosPackage() {
     RosBridgeConfig strict = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> attrs = new HashMap<>();
     attrs.put("ros_type", "Twist");
@@ -136,7 +181,7 @@ class RosBridgeConfigTest {
   @Test
   void strictPushBindingShouldRequireRosType() {
     RosBridgeConfig strict = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> attrs = new HashMap<>();
     attrs.put("ros_package", "geometry_msgs");
@@ -150,7 +195,7 @@ class RosBridgeConfigTest {
   @Test
   void strictPullBindingShouldRequireRosPackage() {
     RosBridgeConfig strict = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> attrs = new HashMap<>();
     attrs.put("local_namespace", "/maps/odom");
@@ -165,7 +210,7 @@ class RosBridgeConfigTest {
   @Test
   void passthroughModeShouldAllowMissingPackageAndType() throws IOException {
     RosBridgeConfig passthrough = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> pushAttrs = new HashMap<>();
     // No ros_package or ros_type
@@ -183,7 +228,7 @@ class RosBridgeConfigTest {
   @Test
   void bindingBuilderShouldParseQosProfile() throws IOException {
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> pushAttrs = new HashMap<>();
     pushAttrs.put("ros_qos", "sensor_data");
@@ -200,11 +245,34 @@ class RosBridgeConfigTest {
   @Test
   void bindingBuilderShouldDefaultToNullQosWhenNotConfigured() throws IOException {
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> attrs = new HashMap<>();
     RosPushBinding push = RosProtocol.buildPushBinding("/maps/cmd", attrs, config);
     assertNull(push.rosQosProfile());
+  }
+
+  @Test
+  void shouldMergeConfiguredLinkMetadataWithRuntimeAttrs() {
+    Map<String, Object> configured = new HashMap<>();
+    configured.put("local_namespace", "/maps/ros/odom");
+    configured.put("ros_topic", "/odom");
+    configured.put("ros_package", "nav_msgs");
+    configured.put("ros_type", "Odometry");
+
+    Map<String, Object> runtime = new HashMap<>();
+    runtime.put("direction", "pull");
+    runtime.put("remote_namespace", "/odom");
+    runtime.put("include_schema", true);
+
+    Map<String, Object> merged = RosProtocol.mergeAttributes(configured, runtime);
+
+    assertEquals("/maps/ros/odom", merged.get("local_namespace"));
+    assertEquals("/odom", merged.get("ros_topic"));
+    assertEquals("nav_msgs", merged.get("ros_package"));
+    assertEquals("Odometry", merged.get("ros_type"));
+    assertEquals("pull", merged.get("direction"));
+    assertEquals(Boolean.TRUE, merged.get("include_schema"));
   }
 
   // ---------------------------------------------------------------------------
@@ -240,7 +308,7 @@ class RosBridgeConfigTest {
   void newAdapterShouldReportNotConnected() {
     // Before connect() the client reference is null so isConnected() uses the null guard.
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
     JRos2ClientAdapter adapter = new JRos2ClientAdapter(LoggerFactory.getLogger(getClass()), config);
     assertFalse(adapter.isConnected());
   }
@@ -250,7 +318,7 @@ class RosBridgeConfigTest {
     // After close(), isConnected() must return false even though the reference was once non-null.
     // This exercises the client.isClosed() path rather than the null guard alone.
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
     JRos2ClientAdapter adapter = new JRos2ClientAdapter(LoggerFactory.getLogger(getClass()), config);
     adapter.close(); // close on a null client must not throw
     assertFalse(adapter.isConnected());
@@ -259,7 +327,7 @@ class RosBridgeConfigTest {
   @Test
   void doubleCloseShouldNotThrow() {
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
     JRos2ClientAdapter adapter = new JRos2ClientAdapter(LoggerFactory.getLogger(getClass()), config);
     adapter.close();
     adapter.close(); // second close must be safe
@@ -269,7 +337,7 @@ class RosBridgeConfigTest {
   @Test
   void publishToUnregisteredTopicShouldThrow() {
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.STRICT, RosBridgeConfig.PayloadFormat.CDR, null, null);
     JRos2ClientAdapter adapter = new JRos2ClientAdapter(LoggerFactory.getLogger(getClass()), config);
 
     RosMessageEnvelope envelope = new RosMessageEnvelope(
@@ -288,7 +356,7 @@ class RosBridgeConfigTest {
   @Test
   void buildPushBindingShouldRejectInvalidRosVersion() {
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> attrs = new HashMap<>();
     attrs.put("ros_version", "ros1");
@@ -301,7 +369,7 @@ class RosBridgeConfigTest {
   @Test
   void buildPullBindingShouldRejectInvalidRosVersion() {
     RosBridgeConfig config = new RosBridgeConfig(
-        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, null, null);
+        RosBridgeConfig.RosVersion.ROS2, RosBridgeConfig.SchemaMode.PASSTHROUGH, RosBridgeConfig.PayloadFormat.CDR, null, null);
 
     Map<String, Object> attrs = new HashMap<>();
     attrs.put("local_namespace", "/maps/odom");

@@ -10,8 +10,8 @@ import java.util.Map;
  * controls here are the DDS domain id, network interface, QoS on individual
  * links, and the configured ROS topic/type metadata.
  */
-public record RosBridgeConfig(RosVersion rosVersion, SchemaMode schemaMode, Integer rosDomainId,
-                              String networkInterface) {
+public record RosBridgeConfig(RosVersion rosVersion, SchemaMode schemaMode, PayloadFormat payloadFormat,
+                              Integer rosDomainId, String networkInterface) {
 
   public enum RosVersion {
     ROS2;
@@ -48,14 +48,31 @@ public record RosBridgeConfig(RosVersion rosVersion, SchemaMode schemaMode, Inte
     }
   }
 
+  public enum PayloadFormat {
+    CDR,
+    JSON;
+
+    static PayloadFormat from(Object value) {
+      if (value == null) {
+        return CDR;
+      }
+      if ("json".equalsIgnoreCase(value.toString().trim())) {
+        return JSON;
+      }
+      return CDR;
+    }
+  }
+
   public static RosBridgeConfig fromMap(Map<String, Object> config) {
     RosVersion version = RosVersion.from(config.get("rosVersion"));
     SchemaMode mode = SchemaMode.from(config.get("schema_mode"));
+    PayloadFormat format = PayloadFormat.from(config.get("payload_format"));
     Integer rosDomainId = asInteger(config, "ros_domain_id", "rosDomainId");
     String networkInterface = asString(config, "network_interface", "networkInterface");
     return new RosBridgeConfig(
             version,
             mode,
+            format,
             rosDomainId,
             networkInterface);
   }
