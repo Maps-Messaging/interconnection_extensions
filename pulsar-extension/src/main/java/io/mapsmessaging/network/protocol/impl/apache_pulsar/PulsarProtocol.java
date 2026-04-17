@@ -101,7 +101,7 @@ public class PulsarProtocol extends Extension {
    * @throws IOException
    */
   @Override
-  public void registerRemoteLink(@NotNull @NotNull String destination, @Nullable String filter) throws IOException {
+  public void registerRemoteLink(@NotNull @NotNull String destination, @Nullable String filter, Map<String,Object> linkProperties) throws IOException {
     consumers.put(destination, client.newConsumer()
         .subscriptionName(getSessionId())
         .topic(destination)
@@ -119,7 +119,7 @@ public class PulsarProtocol extends Extension {
    * @throws IOException
    */
   @Override
-  public void registerLocalLink(@NonNull @NotNull String destination) throws IOException{
+  public void registerLocalLink(@NonNull @NotNull String destination, Map<String,Object> linkProperties) throws IOException{
     producers.put(destination, client.newProducer()
         .topic(destination)
         .producerName(getSessionId())

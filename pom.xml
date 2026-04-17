@@ -57,6 +57,7 @@
         <module>aws-sns-extension</module>
         <module>pulsar-extension</module>
         <module>ibm-mq-extension</module>
+        <module>ros-extension</module>
     </modules>
     <profiles>
         <profile>
@@ -65,6 +66,40 @@
                 <module>v2x-step-extension</module>
             </modules>
         </profile>
+        <profile>
+            <id>maps-bom-release</id>
+            <properties>
+                <maps.core.version>4.3.1</maps.core.version>
+            </properties>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.mapsmessaging</groupId>
+                        <artifactId>maps-stack-bom</artifactId>
+                        <version>2025.08.26.0</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+        </profile>
+        <profile>
+            <id>maps-bom-snapshot</id>
+            <properties>
+                <maps.core.version>4.3.1-SNAPSHOT</maps.core.version>
+            </properties>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.mapsmessaging</groupId>
+                        <artifactId>maps-stack-bom-snapshot</artifactId>
+                        <version>2025.08.26.0-SNAPSHOT</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+        </profile>
     </profiles>
     <properties>
         <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>
@@ -72,21 +107,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
 
-        <!-- Base -->
+        <!-- Managed separately because maps artifact is not yet in maps-stack-bom -->
         <maps.core.version>4.3.1-SNAPSHOT</maps.core.version>
         <maps.logging.version>2.1.2-SNAPSHOT</maps.logging.version>
         <maps.jms_selector.version>2.1.1-SNAPSHOT</maps.jms_selector.version>
-        <maps.nolc.version>1.2.1-SNAPSHOT</maps.nolc.version>
-
-        <!-- first level dependencies -->
         <maps.nbts.version>2.2.2-SNAPSHOT</maps.nbts.version>
-        <maps.schema.version>3.0.0-SNAPSHOT</maps.schema.version>
-        <maps.config.version>1.1.1-SNAPSHOT</maps.config.version>
-
-        <!-- Second level dependencies -->
         <maps.storage.version>2.5.2-SNAPSHOT</maps.storage.version>
-        <maps.device.version>3.0.0-SNAPSHOT</maps.device.version>
-        <maps.auth.version>2.0.1-SNAPSHOT</maps.auth.version>
+        <jacoco.version>0.8.14</jacoco.version>
     </properties>
     <repositories>
         <repository>
@@ -111,7 +138,55 @@
             <url>https://repository.mapsmessaging.io/repository/maps_snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>simple_logging</artifactId>
+                <version>${maps.logging.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>jms_selector_parser</artifactId>
+                <version>${maps.jms_selector.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>non_block_task_scheduler</artifactId>
+                <version>${maps.nbts.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>dynamic_storage</artifactId>
+                <version>${maps.storage.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.8.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -201,32 +276,28 @@
         <dependency>
             <groupId>io.mapsmessaging</groupId>
             <artifactId>simple_logging</artifactId>
-            <version>${maps.logging.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.mapsmessaging</groupId>
             <artifactId>jms_selector_parser</artifactId>
-            <version>${maps.jms_selector.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.mapsmessaging</groupId>
             <artifactId>non_block_task_scheduler</artifactId>
-            <version>${maps.nbts.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.mapsmessaging</groupId>
             <artifactId>dynamic_storage</artifactId>
-            <version>${maps.storage.version}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.38</version>
+            <version>1.18.42</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

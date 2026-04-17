@@ -20,7 +20,10 @@ target/
 *.tmp
 *.bak
 *~
+ros-extension/maps-e2e-sub-*/
 
 # OS
 .DS_Store
 Thumbs.db
+
+.m2_local
