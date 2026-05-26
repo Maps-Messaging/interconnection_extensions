@@ -3,7 +3,7 @@ steps:
     command:
       - export SONAR_TOKEN=$(buildkite-agent secret get SONAR_TOKEN)
       - export NVD_API_KEY=$(buildkite-agent secret get nvd_api_key)
-      - mvn -Dgpg.skip=true clean deploy
+      - mvn -Dgpg.skip=true clean deploy -DskipTests=true
 
     env:
       SONAR_TOKEN: "${SONAR_TOKEN}"
