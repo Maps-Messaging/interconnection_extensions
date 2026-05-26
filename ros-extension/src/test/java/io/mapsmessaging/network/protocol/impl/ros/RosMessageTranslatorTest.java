@@ -34,6 +34,7 @@ class RosMessageTranslatorTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         null,
         null);
 
@@ -60,7 +61,7 @@ class RosMessageTranslatorTest {
         "ros://2/nav_msgs/Odometry",
         new byte[]{9, 8, 7});
 
-    Message output = translator.toMapsMessage(envelope);
+    Message output = translator.toMapsMessage(envelope, RosBridgeConfig.PayloadFormat.CDR);
 
     assertEquals(RosSchemaConvention.CONTENT_TYPE, output.getContentType());
     assertArrayEquals(new byte[]{9, 8, 7}, output.getOpaqueData());
@@ -80,6 +81,7 @@ class RosMessageTranslatorTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         null,
         null);
 
@@ -101,6 +103,7 @@ class RosMessageTranslatorTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         null,
         null);
 
@@ -120,6 +123,7 @@ class RosMessageTranslatorTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         null,
         null);
 
@@ -145,12 +149,36 @@ class RosMessageTranslatorTest {
     RosBridgeConfig config = new RosBridgeConfig(
         RosBridgeConfig.RosVersion.ROS2,
         RosBridgeConfig.SchemaMode.STRICT,
+        RosBridgeConfig.PayloadFormat.CDR,
         null,
         null);
 
     RosMessageEnvelope envelope = translator.toRosEnvelope(input, binding, config);
 
     assertEquals("ros://2/custom_pkg/CustomType", envelope.schemaId());
+  }
+
+  @Test
+  void toMapsMessageShouldSetJsonContentTypeWhenFormatIsJson() {
+    RosMessageEnvelope envelope = new RosMessageEnvelope(
+        "/cmd_vel", "2", "geometry_msgs", "Twist",
+        null, null, null, "ros://2/geometry_msgs/Twist",
+        "{\"linear\":{\"x\":1.0}}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+    Message output = translator.toMapsMessage(envelope, RosBridgeConfig.PayloadFormat.JSON);
+
+    assertEquals(RosSchemaConvention.CONTENT_TYPE_JSON, output.getContentType());
+  }
+
+  @Test
+  void toMapsMessageShouldSetCdrContentTypeWhenFormatIsCdr() {
+    RosMessageEnvelope envelope = new RosMessageEnvelope(
+        "/cmd_vel", "2", "geometry_msgs", "Twist",
+        null, null, null, "ros://2/geometry_msgs/Twist", new byte[]{1, 2, 3});
+
+    Message output = translator.toMapsMessage(envelope, RosBridgeConfig.PayloadFormat.CDR);
+
+    assertEquals(RosSchemaConvention.CONTENT_TYPE, output.getContentType());
   }
 
   @Test
@@ -161,7 +189,7 @@ class RosMessageTranslatorTest {
         "ros://2/sensor_msgs/LaserScan",
         new byte[]{1});
 
-    Message output = translator.toMapsMessage(envelope);
+    Message output = translator.toMapsMessage(envelope, RosBridgeConfig.PayloadFormat.CDR);
 
     assertNull(output.getDataMap().get(RosSchemaConvention.KEY_ROS_QOS));
     assertNull(output.getDataMap().get(RosSchemaConvention.KEY_ROS_CONTEXT));

@@ -4,9 +4,11 @@ import id.jrosmessages.Message;
 import id.jrosmessages.geometry_msgs.TwistMessage;
 import id.jrosmessages.std_msgs.StringMessage;
 import io.mapsmessaging.network.protocol.impl.ros.messages.action_msgs.GoalStatusArrayMessage;
+import io.mapsmessaging.network.protocol.impl.ros.messages.nav2_msgs.CollisionDetectorStateMessage;
 import io.mapsmessaging.network.protocol.impl.ros.messages.nav2_msgs.CostmapMessage;
 import io.mapsmessaging.network.protocol.impl.ros.messages.nav2_msgs.action.NavigateToPose_FeedbackMessage;
 import io.mapsmessaging.network.protocol.impl.ros.messages.nav_msgs.OdometryMessage;
+import io.mapsmessaging.network.protocol.impl.ros.messages.sensor_msgs.ImuMessage;
 import io.mapsmessaging.network.protocol.impl.ros.messages.sensor_msgs.LaserScanMessage;
 import io.mapsmessaging.network.protocol.impl.ros.messages.std_msgs.BoolMessage;
 import io.mapsmessaging.network.protocol.impl.ros.messages.std_msgs.Float32Message;
@@ -55,8 +57,10 @@ final class Ros2MessageTypeRegistry {
     register("std_msgs", "Float32", Float32Message.class);
     register("nav_msgs", "Odometry", OdometryMessage.class);
     register("sensor_msgs", "LaserScan", LaserScanMessage.class);
+    register("sensor_msgs", "Imu", ImuMessage.class);
     register("tf2_msgs", "TFMessage", TFMessage.class);
     register("nav2_msgs", "Costmap", CostmapMessage.class);
+    register("nav2_msgs", "CollisionDetectorState", CollisionDetectorStateMessage.class);
     register("nav2_msgs/action", "NavigateToPose_FeedbackMessage", NavigateToPose_FeedbackMessage.class);
     register("action_msgs", "GoalStatusArray", GoalStatusArrayMessage.class);
   }

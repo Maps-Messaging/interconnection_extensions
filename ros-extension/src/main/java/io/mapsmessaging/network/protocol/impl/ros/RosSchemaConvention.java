@@ -7,6 +7,7 @@ import java.util.Map;
 public final class RosSchemaConvention {
 
   public static final String CONTENT_TYPE = "application/x-ros-binary";
+  public static final String CONTENT_TYPE_JSON = "application/json";
   public static final String KEY_SCHEMA_ID = "maps.schema.id";
   public static final String KEY_SCHEMA_KIND = "maps.schema.kind";
   public static final String KEY_ROS_VERSION = "ros.version";

@@ -7,6 +7,7 @@ import id.jros2client.qos.PublisherQos;
 import id.jros2client.qos.QosDurability;
 import id.jros2client.qos.QosReliability;
 import id.jros2client.qos.SubscriberQos;
+import com.google.gson.Gson;
 import id.jros2messages.Ros2MessageSerializationUtils;
 import id.jrosclient.TopicSubmissionPublisher;
 import id.jrosclient.TopicSubscriber;
@@ -17,8 +18,9 @@ import lombok.NonNull;
 import pinorobotics.rtpstalk.RtpsTalkConfiguration;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,6 +36,7 @@ public class JRos2ClientAdapter {
   private final Logger logger;
   private final RosBridgeConfig config;
   private final Ros2MessageSerializationUtils serializer = new Ros2MessageSerializationUtils();
+  private final Gson gson = new Gson();
   private final Map<String, PublisherHolder> publishers = new ConcurrentHashMap<>();
   private volatile JRos2Client client;
 
@@ -75,16 +78,23 @@ public class JRos2ClientAdapter {
       builder.domainId(rosDomainId);
     }
 
-    String networkInterfaceName = config.networkInterface();
-    if (networkInterfaceName != null) {
+    String networkInterfaceValue = this.config.networkInterface();
+    if (networkInterfaceValue != null) {
       try {
-        NetworkInterface networkInterface = NetworkInterface.getByName(networkInterfaceName);
+        NetworkInterface networkInterface = NetworkInterface.getByName(networkInterfaceValue);
+
         if (networkInterface == null) {
-          throw new IOException("network_interface not found: " + networkInterfaceName);
+          InetAddress inetAddress = InetAddress.getByName(networkInterfaceValue);
+          networkInterface = NetworkInterface.getByInetAddress(inetAddress);
         }
+
+        if (networkInterface == null) {
+          throw new IOException("network_interface not found: " + networkInterfaceValue);
+        }
+
         builder.networkInterface(networkInterface);
-      } catch (SocketException e) {
-        throw new IOException("Failed to resolve network_interface: " + networkInterfaceName, e);
+      } catch (Exception e) {
+        throw new IOException("network_interface not found: " + networkInterfaceValue);
       }
     }
 
@@ -112,34 +122,56 @@ public class JRos2ClientAdapter {
     Class<? extends Message> messageClass = resolveMessageClass(binding.rosPackage(), binding.rosType());
     SubscriberQos qos = subscriberQos(binding.rosQosProfile());
     try {
-      client.subscribe(qos, new TopicSubscriber<>((Class<Message>) messageClass, binding.rosTopic()) {
-          @Override
-          public void onNext(Message message) {
-              byte[] payload = serializer.write(message);
-              RosMessageEnvelope envelope = new RosMessageEnvelope(
-                      binding.rosTopic(),
-                      binding.rosVersion(),
-                      binding.rosPackage(),
-                      binding.rosType(),
-                      null, null, null,
-                      RosSchemaConvention.schemaId(binding.rosVersion(), binding.rosPackage(), binding.rosType()),
-                      payload);
-              try {
-                  listener.onMessage(envelope);
-              } catch (IOException e) {
-                  logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + e.getMessage());
-              }
-          }
-
-          @Override
-          public void onError(Throwable throwable) {
-              logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + throwable.getMessage());
-          }
-      });
+      client.subscribe(qos, buildSubscriber((Class<Message>) messageClass, binding, listener));
       logger.log(RosLogMessages.ROS_QOS_APPLIED, binding.rosTopic() + " qos=" + qosLabel(binding.rosQosProfile()));
     } catch (JRosClientException e) {
       throw new IOException("Failed to subscribe to ROS topic " + binding.rosTopic(), e);
     }
+  }
+
+  /**
+   * Builds the Flow.Subscriber for a pull binding. Package-private so that unit tests can drive it
+   * directly without requiring a live ROS2 connection.
+   *
+   * <p>{@code TopicSubscriber.onSubscribe()} calls {@code subscription.request(initNumOfMessages)}
+   * (default 1) and {@code TopicSubscriber.onNext()} only updates a telemetry counter — it does
+   * NOT re-issue demand. Without the explicit {@code getSubscription().ifPresent(s -> s.request(1))}
+   * call in {@code onNext()}, demand drops to 0 after the first delivery and the DDS publisher
+   * stops sending further messages.
+   */
+  <M extends Message> TopicSubscriber<M> buildSubscriber(
+      Class<M> messageClass, RosPullBinding binding, RosMessageListener listener) {
+    return new TopicSubscriber<>(messageClass, binding.rosTopic()) {
+      @Override
+      public void onNext(M message) {
+        byte[] payload = config.payloadFormat() == RosBridgeConfig.PayloadFormat.JSON
+            ? gson.toJson(message).getBytes(StandardCharsets.UTF_8)
+            : serializer.write(message);
+        RosMessageEnvelope envelope = new RosMessageEnvelope(
+            binding.rosTopic(),
+            binding.rosVersion(),
+            binding.rosPackage(),
+            binding.rosType(),
+            null, null, null,
+            RosSchemaConvention.schemaId(binding.rosVersion(), binding.rosPackage(), binding.rosType()),
+            payload);
+        try {
+          listener.onMessage(envelope);
+        } catch (IOException e) {
+          logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + e.getMessage());
+        }
+        super.onNext(message); // update jrosclient received-messages telemetry counter
+        // Re-issue demand for the next message. TopicSubscriber.onSubscribe() calls request(1)
+        // once; without this call the subscription demand stays at 0 after the first delivery
+        // and no further messages are received from the DDS publisher.
+        getSubscription().ifPresent(s -> s.request(1));
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+        logger.log(RosLogMessages.ROS_INBOUND_ERROR, binding.rosTopic() + " reason=" + throwable.getMessage());
+      }
+    };
   }
 
   public void publish(String topic, RosMessageEnvelope envelope) throws IOException {
@@ -149,7 +181,9 @@ public class JRos2ClientAdapter {
       throw new IOException("Publisher not registered for topic: " + topic);
     }
     try {
-      Message message = serializer.read(envelope.payload(), holder.messageClass);
+      Message message = config.payloadFormat() == RosBridgeConfig.PayloadFormat.JSON
+          ? gson.fromJson(new String(envelope.payload(), StandardCharsets.UTF_8), holder.messageClass)
+          : serializer.read(envelope.payload(), holder.messageClass);
       @SuppressWarnings("unchecked")
       TopicSubmissionPublisher<Message> publisher = (TopicSubmissionPublisher<Message>) holder.publisher;
       publisher.submit(message);

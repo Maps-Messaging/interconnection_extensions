@@ -9,6 +9,7 @@ import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -108,20 +109,19 @@ public class RosProtocol extends Extension {
   }
 
   @Override
-  public void registerRemoteLink(@NotNull String destination, String filter) throws IOException {
+  public void registerRemoteLink(@NotNull String destination, String filter, Map<String,Object> attrs) throws IOException {
     if (isSchemaDestination(destination)) {
       return;
     }
-    Map<String, Object> attrs = findLinkAttributes(destination, "pull");
-    if (attrs == null) {
-      attrs = protocolConfig.getConfig();
-    }
+    logger.log(RosLogMessages.ROS_INITIALIZED,
+        "registerRemoteLink dest=" + destination + " attrsKeys=" + (attrs == null ? "null" : attrs.keySet()));
+    attrs = resolveLinkAttributes(destination, "pull", attrs);
 
     RosPullBinding binding = buildPullBinding(destination, attrs, bridgeConfig);
 
     rosClientAdapter.subscribe(binding, envelope -> {
       try {
-        Message message = translator.toMapsMessage(envelope);
+        Message message = translator.toMapsMessage(envelope, bridgeConfig.payloadFormat());
         inbound(binding.localNamespace(), message);
         logger.log(RosLogMessages.ROS_MESSAGE_RECEIVED, binding.rosTopic());
       } catch (Exception e) {
@@ -135,14 +135,11 @@ public class RosProtocol extends Extension {
   }
 
   @Override
-  public void registerLocalLink(@NotNull String destination) throws IOException {
+  public void registerLocalLink(@NotNull String destination, Map<String,Object> attrs) throws IOException {
     if (isSchemaDestination(destination)) {
       return;
     }
-    Map<String, Object> attrs = findLinkAttributes(destination, "push");
-    if (attrs == null) {
-      attrs = protocolConfig.getConfig();
-    }
+    attrs = resolveLinkAttributes(destination, "push", attrs);
 
     RosPushBinding binding = buildPushBinding(destination, attrs, bridgeConfig);
     pushBindings.put(binding.localNamespace(), binding);
@@ -155,6 +152,20 @@ public class RosProtocol extends Extension {
 
   private boolean isSchemaDestination(String destination) {
     return destination.startsWith("$schema/") || destination.startsWith("$SCHEMA/");
+  }
+
+  private Map<String, Object> resolveLinkAttributes(
+      String destination,
+      String direction,
+      Map<String, Object> runtimeAttrs) {
+    Map<String, Object> configuredAttrs = findLinkAttributes(destination, direction);
+    if (runtimeAttrs == null) {
+      return configuredAttrs != null ? configuredAttrs : protocolConfig.getConfig();
+    }
+    if (configuredAttrs == null) {
+      return runtimeAttrs;
+    }
+    return mergeAttributes(configuredAttrs, runtimeAttrs);
   }
 
   @SuppressWarnings("unchecked")
@@ -175,6 +186,14 @@ public class RosProtocol extends Extension {
       }
     }
     return null;
+  }
+
+  static Map<String, Object> mergeAttributes(
+      Map<String, Object> configuredAttrs,
+      Map<String, Object> runtimeAttrs) {
+    Map<String, Object> merged = new HashMap<>(configuredAttrs);
+    merged.putAll(runtimeAttrs);
+    return merged;
   }
 
   private boolean matchesLinkDestination(String destination, Map<String, Object> link) {
@@ -224,7 +243,7 @@ public class RosProtocol extends Extension {
   static RosPullBinding buildPullBinding(String destination, Map<String, Object> attrs, RosBridgeConfig bridgeConfig) throws IOException {
     String localNamespace = asString(attrs.get("local_namespace"));
     if (localNamespace == null || localNamespace.isEmpty()) {
-      throw new IOException("local_namespace is required for pull link: " + destination);
+      localNamespace = destination;
     }
 
     String rosTopic = asString(attrs.get("ros_topic"));

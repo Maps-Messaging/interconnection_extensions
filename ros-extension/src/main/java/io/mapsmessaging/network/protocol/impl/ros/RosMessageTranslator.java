@@ -37,10 +37,13 @@ public class RosMessageTranslator {
     return new RosMessageEnvelope(topic, version, pkg, type, md5, qos, context, schemaId, payload);
   }
 
-  public Message toMapsMessage(RosMessageEnvelope envelope) {
+  public Message toMapsMessage(RosMessageEnvelope envelope, RosBridgeConfig.PayloadFormat format) {
+    String contentType = format == RosBridgeConfig.PayloadFormat.JSON
+        ? RosSchemaConvention.CONTENT_TYPE_JSON
+        : RosSchemaConvention.CONTENT_TYPE;
     return new MessageBuilder()
         .setOpaqueData(envelope.payload())
-        .setContentType(RosSchemaConvention.CONTENT_TYPE)
+        .setContentType(contentType)
         .setDataMap(RosSchemaConvention.metadataAsTypedData(envelope))
         .build();
   }

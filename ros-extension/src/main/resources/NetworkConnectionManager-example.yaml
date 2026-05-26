@@ -8,22 +8,34 @@ NetworkConnectionManager:
       url: "ros://localhost"
       protocol: ros
       plugin: true
-      # MAPS uses endpoint-level links to decide which local/remote subscriptions
-      # to establish. The ROS extension reads config.links for ROS package/type metadata.
       links:
         # MAPS -> ROS
+        # cmd_vel uses default QoS (RELIABLE + VOLATILE) — nav2 velocity consumer expects RELIABLE
         -
           direction: push
           local_namespace: "/maps/ros/cmd_vel"
           remote_namespace: "/cmd_vel"
           include_schema: true
+          linkProperties:
+            ros_topic: "/cmd_vel"
+            ros_version: "2"
+            ros_package: "geometry_msgs"
+            ros_type: "Twist"
+            ros_qos: "default"
 
         # ROS -> MAPS
+        # odom is published with BEST_EFFORT by most Nav2 stacks; use sensor_data to match
         -
           direction: pull
           local_namespace: "/maps/ros/odom"
           remote_namespace: "/odom"
           include_schema: true
+          linkProperties:
+            ros_topic: "/odom"
+            ros_version: "2"
+            ros_package: "nav_msgs"
+            ros_type: "Odometry"
+            ros_qos: "sensor_data"
 
         # ROS -> MAPS (Nav2 obstacle perception)
         -
@@ -31,6 +43,12 @@ NetworkConnectionManager:
           local_namespace: "/maps/ros/scan"
           remote_namespace: "/scan"
           include_schema: true
+          linkProperties:
+            ros_topic: "/scan"
+            ros_version: "2"
+            ros_package: "sensor_msgs"
+            ros_type: "LaserScan"
+            ros_qos: "sensor_data"
 
         # ROS -> MAPS (derived collision awareness topics from the LaserScan strategy)
         -
@@ -38,25 +56,51 @@ NetworkConnectionManager:
           local_namespace: "/maps/ros/collision_ahead"
           remote_namespace: "/collision_ahead"
           include_schema: true
+          linkProperties:
+            ros_topic: "/collision_ahead"
+            ros_version: "2"
+            ros_package: "std_msgs"
+            ros_type: "Bool"
+            ros_qos: "sensor_data"
 
         -
           direction: pull
           local_namespace: "/maps/ros/nearest_obstacle_m"
           remote_namespace: "/nearest_obstacle_m"
           include_schema: true
+          linkProperties:
+            ros_topic: "/nearest_obstacle_m"
+            ros_version: "2"
+            ros_package: "std_msgs"
+            ros_type: "Float32"
+            ros_qos: "sensor_data"
 
         # ROS -> MAPS (TF graph updates)
+        # /tf is RELIABLE + VOLATILE
         -
           direction: pull
           local_namespace: "/maps/ros/tf"
           remote_namespace: "/tf"
           include_schema: true
+          linkProperties:
+            ros_topic: "/tf"
+            ros_version: "2"
+            ros_package: "tf2_msgs"
+            ros_type: "TFMessage"
+            ros_qos: "reliable"
 
+        # /tf_static is RELIABLE + TRANSIENT_LOCAL (latched equivalent in ROS2)
         -
           direction: pull
           local_namespace: "/maps/ros/tf_static"
           remote_namespace: "/tf_static"
           include_schema: true
+          linkProperties:
+            ros_topic: "/tf_static"
+            ros_version: "2"
+            ros_package: "tf2_msgs"
+            ros_type: "TFMessage"
+            ros_qos: "transient_local"
 
         # ROS -> MAPS (Nav2 costmap state)
         -
@@ -64,19 +108,39 @@ NetworkConnectionManager:
           local_namespace: "/maps/ros/local_costmap"
           remote_namespace: "/local_costmap/costmap"
           include_schema: true
+          linkProperties:
+            ros_topic: "/local_costmap/costmap"
+            ros_version: "2"
+            ros_package: "nav2_msgs"
+            ros_type: "Costmap"
+            ros_qos: "sensor_data"
 
         # ROS -> MAPS (Nav2 action feedback/status monitoring)
+        # jROS action feedback metadata maps this base action topic to
+        # /navigate_to_pose/_action/feedback on the ROS2 side.
         -
           direction: pull
           local_namespace: "/maps/ros/nav2/feedback"
           remote_namespace: "/navigate_to_pose"
           include_schema: true
+          linkProperties:
+            ros_topic: "/navigate_to_pose"
+            ros_version: "2"
+            ros_package: "nav2_msgs/action"
+            ros_type: "NavigateToPose_FeedbackMessage"
+            ros_qos: "reliable"
 
         -
           direction: pull
           local_namespace: "/maps/ros/nav2/status"
           remote_namespace: "/navigate_to_pose/_action/status"
           include_schema: true
+          linkProperties:
+            ros_topic: "/navigate_to_pose/_action/status"
+            ros_version: "2"
+            ros_package: "action_msgs"
+            ros_type: "GoalStatusArray"
+            ros_qos: "reliable"
 
       config:
         # ROS2 only
@@ -90,139 +154,12 @@ NetworkConnectionManager:
         # In strict mode ros_package AND ros_type are required on every link.
         schema_mode: strict
 
-        links:
-          # MAPS -> ROS
-          # cmd_vel uses default QoS (RELIABLE + VOLATILE) — nav2 velocity consumer expects RELIABLE
-          -
-            direction: push
-            local_namespace: "/maps/ros/cmd_vel"
-            remote_namespace: "/cmd_vel"
-            include_schema: true
-
-            ros_topic: "/cmd_vel"
-            ros_version: "2"
-            ros_package: "geometry_msgs"
-            ros_type: "Twist"
-            ros_qos: "default"
-
-          # ROS -> MAPS
-          # odom is published with BEST_EFFORT by most Nav2 stacks; use sensor_data to match
-          -
-            direction: pull
-            local_namespace: "/maps/ros/odom"
-            remote_namespace: "/odom"
-            include_schema: true
-
-            ros_topic: "/odom"
-            ros_version: "2"
-            ros_package: "nav_msgs"
-            ros_type: "Odometry"
-            ros_qos: "sensor_data"
-
-          # ROS -> MAPS (Nav2 obstacle perception)
-          -
-            direction: pull
-            local_namespace: "/maps/ros/scan"
-            remote_namespace: "/scan"
-            include_schema: true
-
-            ros_topic: "/scan"
-            ros_version: "2"
-            ros_package: "sensor_msgs"
-            ros_type: "LaserScan"
-            ros_qos: "sensor_data"
-
-          # ROS -> MAPS (derived collision awareness topics from the LaserScan strategy)
-          -
-            direction: pull
-            local_namespace: "/maps/ros/collision_ahead"
-            remote_namespace: "/collision_ahead"
-            include_schema: true
-
-            ros_topic: "/collision_ahead"
-            ros_version: "2"
-            ros_package: "std_msgs"
-            ros_type: "Bool"
-            ros_qos: "sensor_data"
-
-          -
-            direction: pull
-            local_namespace: "/maps/ros/nearest_obstacle_m"
-            remote_namespace: "/nearest_obstacle_m"
-            include_schema: true
-
-            ros_topic: "/nearest_obstacle_m"
-            ros_version: "2"
-            ros_package: "std_msgs"
-            ros_type: "Float32"
-            ros_qos: "sensor_data"
-
-          # ROS -> MAPS (TF graph updates)
-          # /tf is RELIABLE + VOLATILE
-          -
-            direction: pull
-            local_namespace: "/maps/ros/tf"
-            remote_namespace: "/tf"
-            include_schema: true
-
-            ros_topic: "/tf"
-            ros_version: "2"
-            ros_package: "tf2_msgs"
-            ros_type: "TFMessage"
-            ros_qos: "reliable"
-
-          # /tf_static is RELIABLE + TRANSIENT_LOCAL (latched equivalent in ROS2)
-          -
-            direction: pull
-            local_namespace: "/maps/ros/tf_static"
-            remote_namespace: "/tf_static"
-            include_schema: true
-
-            ros_topic: "/tf_static"
-            ros_version: "2"
-            ros_package: "tf2_msgs"
-            ros_type: "TFMessage"
-            ros_qos: "transient_local"
-
-          # ROS -> MAPS (Nav2 costmap state)
-          -
-            direction: pull
-            local_namespace: "/maps/ros/local_costmap"
-            remote_namespace: "/local_costmap/costmap"
-            include_schema: true
-
-            ros_topic: "/local_costmap/costmap"
-            ros_version: "2"
-            ros_package: "nav2_msgs"
-            ros_type: "Costmap"
-            ros_qos: "sensor_data"
-
-          # ROS -> MAPS (Nav2 action feedback/status monitoring)
-          -
-            direction: pull
-            local_namespace: "/maps/ros/nav2/feedback"
-            remote_namespace: "/navigate_to_pose"
-            include_schema: true
-
-            # jROS action feedback metadata maps this base action topic to
-            # /navigate_to_pose/_action/feedback on the ROS2 side.
-            ros_topic: "/navigate_to_pose"
-            ros_version: "2"
-            ros_package: "nav2_msgs/action"
-            ros_type: "NavigateToPose_FeedbackMessage"
-            ros_qos: "reliable"
-
-          -
-            direction: pull
-            local_namespace: "/maps/ros/nav2/status"
-            remote_namespace: "/navigate_to_pose/_action/status"
-            include_schema: true
-
-            ros_topic: "/navigate_to_pose/_action/status"
-            ros_version: "2"
-            ros_package: "action_msgs"
-            ros_type: "GoalStatusArray"
-            ros_qos: "reliable"
+        # cdr | json  (default: cdr)
+        # Controls the wire format for all topics on this connection.
+        # cdr  — CDR binary serialization (application/x-ros-binary); most efficient.
+        # json — Gson JSON serialization (application/json); human-readable, useful for
+        #        debugging or when downstream consumers expect JSON payloads.
+        # payload_format: cdr
 
 # Schema convention emitted in MAPS data map:
 # - maps.schema.kind = "ros"

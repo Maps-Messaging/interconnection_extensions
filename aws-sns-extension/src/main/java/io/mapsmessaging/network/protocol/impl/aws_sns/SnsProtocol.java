@@ -101,7 +101,7 @@ public class SnsProtocol extends Extension {
   }
 
   @Override
-  public void registerRemoteLink(String destination, String filter) throws IOException {
+  public void registerRemoteLink(String destination, String filter, Map<String,Object> linkProperties) throws IOException {
     try {
       SubscribeRequest subscribeRequest = SubscribeRequest.builder()
           .topicArn(topicArn)
@@ -118,9 +118,9 @@ public class SnsProtocol extends Extension {
   }
 
   @Override
-  public void registerLocalLink(String destination) throws IOException {
+  public void registerLocalLink(String destination, Map<String,Object> linkProperties) throws IOException {
     // In SNS, there is no concept of local vs remote subscriptions
-    registerRemoteLink(destination, null);
+    registerRemoteLink(destination, null, linkProperties);
     logger.log(SnsLogMessages.SNS_SUBSCRIBE_LOCAL_SUCCESS, destination);
   }
 }
