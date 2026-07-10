@@ -10,6 +10,7 @@ import io.mapsmessaging.network.protocol.impl.extension.ExtensionEndPoint;
 import io.mapsmessaging.network.protocol.impl.extension.ExtensionProtocol;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class RosProtocolFactory extends ProtocolImplFactory {
 
@@ -18,7 +19,7 @@ public class RosProtocolFactory extends ProtocolImplFactory {
   }
 
   @Override
-  public Protocol connect(EndPoint endPoint, String sessionId, String username, String password) throws IOException {
+  public Protocol connect(EndPoint endPoint, String sessionId, String username, String password, Map<String, String> configMap) throws IOException {
     ExtensionConfigDTO config = (ExtensionConfigDTO) ((ExtensionEndPoint) endPoint).config();
     Protocol protocol = new ExtensionProtocol(endPoint, new RosProtocol(config));
     protocol.connect(sessionId, username, password);
