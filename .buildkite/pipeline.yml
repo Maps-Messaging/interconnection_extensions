@@ -4,8 +4,7 @@ steps:
       - export SONAR_TOKEN=$(buildkite-agent secret get SONAR_TOKEN)
       - export NVD_API_KEY=$(buildkite-agent secret get nvd_api_key)
       - mvn -Dgpg.skip=true clean deploy -DskipTests=true
+      - mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar -Dsonar.token=${SONAR_TOKEN} -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=maps-messaging -Dsonar.projectKey=Maps-Messaging_interconnection_extensions
 
-    env:
-      SONAR_TOKEN: "${SONAR_TOKEN}"
     agents:
-      queue: "java_build_queue"
+      queue: "java_build_queue_aws"
