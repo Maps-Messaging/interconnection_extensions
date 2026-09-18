@@ -60,6 +60,20 @@
         <module>ros-extension</module>
     </modules>
     <profiles>
+    <profile>
+      <id>buildkite-dependency-check-cache</id>
+      <activation>
+        <property>
+          <name>env.BUILDKITE</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <properties>
+        <dependency.check.autoUpdate>false</dependency.check.autoUpdate>
+        <dependency.check.dataDirectory>/var/cache/dependency-check/13</dependency.check.dataDirectory>
+      </properties>
+    </profile>
+
         <profile>
             <id>with-v2x</id>
             <modules>
@@ -102,7 +116,8 @@
         </profile>
     </profiles>
     <properties>
-        <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>
+        <dependency.check.autoUpdate>true</dependency.check.autoUpdate>
+        <dependency.check.dataDirectory>${user.home}/.m2/repository/org/owasp/dependency-check-data/</dependency.check.dataDirectory>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
@@ -248,9 +263,10 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>12.0.1</version>
+                <version>13.0.0</version>
                 <configuration>
-                    <nvdApiKey>${nvd.api.key}</nvdApiKey>
+                    <autoUpdate>${dependency.check.autoUpdate}</autoUpdate>
+                    <dataDirectory>${dependency.check.dataDirectory}</dataDirectory>
                     <failBuildOnCVSS>10</failBuildOnCVSS>
                     <failOnError>false</failOnError>
                     <skipArtifactType>test-jar</skipArtifactType>
