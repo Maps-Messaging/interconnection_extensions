@@ -33,7 +33,6 @@
     <artifactId>pulsar-extension</artifactId>
 
     <properties>
-        <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
