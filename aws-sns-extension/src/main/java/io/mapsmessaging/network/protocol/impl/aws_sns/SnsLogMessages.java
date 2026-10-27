@@ -22,9 +22,7 @@ package io.mapsmessaging.network.protocol.impl.aws_sns;
 import io.mapsmessaging.logging.Category;
 import io.mapsmessaging.logging.LEVEL;
 import io.mapsmessaging.logging.LogMessage;
-import lombok.Getter;
 
-@Getter
 public enum SnsLogMessages implements LogMessage {
 
   SNS_INITIALIZED(LEVEL.INFO, SNS_CATEGORY.PROTOCOL, "SNS connection established to {}"),
@@ -58,14 +56,39 @@ public enum SnsLogMessages implements LogMessage {
     this.parameterCount = count;
   }
 
-  @Getter
+  @Override
+  public String getMessage() {
+    return message;
+  }
+
+  @Override
+  public LEVEL getLevel() {
+    return level;
+  }
+
+  @Override
+  public Category getCategory() {
+    return category;
+  }
+
+  @Override
+  public int getParameterCount() {
+    return parameterCount;
+  }
+
   public enum SNS_CATEGORY implements Category {
     PROTOCOL("Protocol");
 
     private final String description;
 
+    @Override
     public String getDivision() {
       return "Inter-Protocol";
+    }
+
+    @Override
+    public String getDescription() {
+      return description;
     }
 
     SNS_CATEGORY(String description) {

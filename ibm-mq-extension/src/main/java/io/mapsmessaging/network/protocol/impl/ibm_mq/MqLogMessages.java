@@ -22,9 +22,7 @@ package io.mapsmessaging.network.protocol.impl.ibm_mq;
 import io.mapsmessaging.logging.Category;
 import io.mapsmessaging.logging.LEVEL;
 import io.mapsmessaging.logging.LogMessage;
-import lombok.Getter;
 
-@Getter
 public enum MqLogMessages implements LogMessage {
 
   MQ_INITIALIZED(LEVEL.INFO, MQ_CATEGORY.PROTOCOL, "MQ connection established to {}"),
@@ -58,14 +56,39 @@ public enum MqLogMessages implements LogMessage {
     this.parameterCount = count;
   }
 
-  @Getter
+  @Override
+  public String getMessage() {
+    return message;
+  }
+
+  @Override
+  public LEVEL getLevel() {
+    return level;
+  }
+
+  @Override
+  public Category getCategory() {
+    return category;
+  }
+
+  @Override
+  public int getParameterCount() {
+    return parameterCount;
+  }
+
   public enum MQ_CATEGORY implements Category {
     PROTOCOL("Protocol");
 
     private final String description;
 
+    @Override
     public String getDivision() {
       return "Inter-Protocol";
+    }
+
+    @Override
+    public String getDescription() {
+      return description;
     }
 
     MQ_CATEGORY(String description) {

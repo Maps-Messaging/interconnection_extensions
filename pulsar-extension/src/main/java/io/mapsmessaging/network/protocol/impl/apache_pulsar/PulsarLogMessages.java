@@ -22,9 +22,7 @@ package io.mapsmessaging.network.protocol.impl.apache_pulsar;
 import io.mapsmessaging.logging.Category;
 import io.mapsmessaging.logging.LEVEL;
 import io.mapsmessaging.logging.LogMessage;
-import lombok.Getter;
 
-@Getter
 public enum PulsarLogMessages implements LogMessage {
 
   //-------------------------------------------------------------------------------------------------------------
@@ -59,13 +57,39 @@ public enum PulsarLogMessages implements LogMessage {
     this.parameterCount = count;
   }
 
+  @Override
+  public String getMessage() {
+    return message;
+  }
+
+  @Override
+  public LEVEL getLevel() {
+    return level;
+  }
+
+  @Override
+  public Category getCategory() {
+    return category;
+  }
+
+  @Override
+  public int getParameterCount() {
+    return parameterCount;
+  }
+
   public enum PULSAR_CATEGORY implements Category {
     PROTOCOL("Protocol");
 
-    private final @Getter String description;
+    private final String description;
 
+    @Override
     public String getDivision() {
       return "Inter-Protocol";
+    }
+
+    @Override
+    public String getDescription() {
+      return description;
     }
 
     PULSAR_CATEGORY(String description) {

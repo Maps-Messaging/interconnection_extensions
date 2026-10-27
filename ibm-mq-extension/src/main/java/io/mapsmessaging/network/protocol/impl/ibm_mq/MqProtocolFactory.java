@@ -29,6 +29,7 @@ import io.mapsmessaging.network.protocol.impl.extension.ExtensionProtocol;
 import io.mapsmessaging.network.protocol.impl.extension.ExtensionEndPoint;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class MqProtocolFactory extends ProtocolImplFactory {
 
@@ -37,7 +38,7 @@ public class MqProtocolFactory extends ProtocolImplFactory {
   }
 
   @Override
-  public Protocol connect(EndPoint endPoint, String sessionId, String username, String password) throws IOException {
+  public Protocol connect(EndPoint endPoint, String sessionId, String username, String password, Map<String, String> config) throws IOException {
     ExtensionConfigDTO protocolConfigDTO = (ExtensionConfigDTO) ((ExtensionEndPoint)endPoint).config();
     Protocol protocol = new ExtensionProtocol( endPoint, new MqProtocol(endPoint, protocolConfigDTO));
     protocol.connect(sessionId, username, password);

@@ -29,6 +29,7 @@ import io.mapsmessaging.network.protocol.impl.extension.ExtensionProtocol;
 import io.mapsmessaging.network.protocol.impl.extension.ExtensionEndPoint;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * This class is a proof of concept on how the server could connect to other
@@ -44,7 +45,7 @@ public class PulsarProtocolFactory extends ProtocolImplFactory {
   }
 
   @Override
-  public Protocol connect(EndPoint endPoint, String sessionId, String username, String password) throws IOException {
+  public Protocol connect(EndPoint endPoint, String sessionId, String username, String password, Map<String, String> config) throws IOException {
     ExtensionConfigDTO protocolConfigDTO = (ExtensionConfigDTO) ((ExtensionEndPoint)endPoint).config();
     Protocol protocol = new ExtensionProtocol( endPoint, new PulsarProtocol(endPoint, protocolConfigDTO));
     protocol.connect(sessionId, username, password);

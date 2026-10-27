@@ -25,7 +25,7 @@
 
     <groupId>io.mapsmessaging</groupId>
     <artifactId>extension-project</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>4.5.0</version>
     <packaging>pom</packaging>
     <developers>
         <developer>
@@ -52,17 +52,61 @@
             <comments>Applied in conjunction with Apache 2.0 to restrict commercial sale</comments>
         </license>
     </licenses>
+
     <modules>
         <module>aws-sns-extension</module>
         <module>pulsar-extension</module>
         <module>ibm-mq-extension</module>
+        <module>ros-extension</module>
     </modules>
+    <profiles>
+    <profile>
+      <id>buildkite-dependency-check-cache</id>
+      <activation>
+        <property>
+          <name>env.BUILDKITE</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <properties>
+        <dependency.check.autoUpdate>false</dependency.check.autoUpdate>
+        <dependency.check.dataDirectory>/var/cache/dependency-check/13</dependency.check.dataDirectory>
+      </properties>
+    </profile>
+
+        <profile>
+            <id>with-v2x</id>
+            <modules>
+                <module>v2x-step-extension</module>
+            </modules>
+        </profile>
+    </profiles>
     <properties>
-        <maven.compiler.release>11</maven.compiler.release>
+        <dependency.check.autoUpdate>true</dependency.check.autoUpdate>
+        <dependency.check.dataDirectory>${user.home}/.m2/repository/org/owasp/dependency-check-data/</dependency.check.dataDirectory>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
+        <gpg.keyname>admin@mapsmessaging.io</gpg.keyname>
+
+        <maps.core.version>4.5.0</maps.core.version>
+        <maps.logging.version>2.2.0</maps.logging.version>
+        <maps.jms_selector.version>2.1.2</maps.jms_selector.version>
+        <maps.nbts.version>2.2.3</maps.nbts.version>
+        <maps.storage.version>2.5.3</maps.storage.version>
+        <jacoco.version>0.8.14</jacoco.version>
     </properties>
     <repositories>
+        <repository>
+            <id>maps_releases</id>
+            <name>maps_releases_repository</name>
+            <url>https://repository.mapsmessaging.io/repository/maps_releases/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
         <repository>
             <id>maps_snapshots</id>
             <name>maps_snapshot_repository</name>
@@ -79,31 +123,79 @@
     </repositories>
 
     <distributionManagement>
+        <repository>
+            <id>maps_releases</id>
+            <name>maps_releases_repository</name>
+            <url>https://repository.mapsmessaging.io/repository/maps_releases/</url>
+        </repository>
         <snapshotRepository>
             <id>maps_snapshots</id>
             <name>maps_snapshot_repository</name>
             <url>https://repository.mapsmessaging.io/repository/maps_snapshots/</url>
         </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
     </distributionManagement>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>simple_logging</artifactId>
+                <version>${maps.logging.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>jms_selector_parser</artifactId>
+                <version>${maps.jms_selector.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>non_block_task_scheduler</artifactId>
+                <version>${maps.nbts.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.mapsmessaging</groupId>
+                <artifactId>dynamic_storage</artifactId>
+                <version>${maps.storage.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.8.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>21</source>
-                    <target>21</target>
+                    <release>${maven.compiler.release}</release>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.2.7</version>
+                <version>3.2.8</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -113,8 +205,12 @@
                         </goals>
                         <configuration>
                             <keyname>${gpg.keyname}</keyname>
-                            <passphraseServerId>${gpg.keyname}</passphraseServerId>
-                        </configuration>
+              <passphraseEnvName>MAVEN_GPG_PASSPHRASE</passphraseEnvName>
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+</configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -152,9 +248,10 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>12.0.1</version>
+                <version>13.0.0</version>
                 <configuration>
-                    <nvdApiKey>${nvd.api.key}</nvdApiKey>
+                    <autoUpdate>${dependency.check.autoUpdate}</autoUpdate>
+                    <dataDirectory>${dependency.check.dataDirectory}</dataDirectory>
                     <failBuildOnCVSS>10</failBuildOnCVSS>
                     <failOnError>false</failOnError>
                     <skipArtifactType>test-jar</skipArtifactType>
@@ -171,4 +268,39 @@
             <!-- Allow JDKs greater than 1.8 to be used by maven -->
         </plugins>
     </build>
+    <dependencies>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>maps</artifactId>
+            <version>${maps.core.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>simple_logging</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>jms_selector_parser</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>non_block_task_scheduler</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mapsmessaging</groupId>
+            <artifactId>dynamic_storage</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.42</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 </project>

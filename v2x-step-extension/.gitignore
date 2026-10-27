@@ -1,0 +1,13 @@
+# Maven build files
+target/
+
+# Java class files and logs
+*.class
+*.log
+
+# SDK JAR: ignore all jars in lib (SDK jars should not be shipped)
+lib/*.jar
+
+# Example config patterns
+src/main/resources/*.properties
+!src/main/resources/NetworkConnectionManager-example.yaml

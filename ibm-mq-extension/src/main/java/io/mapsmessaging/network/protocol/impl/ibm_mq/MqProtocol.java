@@ -178,7 +178,7 @@ public class MqProtocol extends Extension {
   }
 
   @Override
-  public void registerRemoteLink(@NotNull @NotNull String destination, @Nullable String filter) throws IOException {
+  public void registerRemoteLink(@NotNull @NotNull String destination, @Nullable String filter, Map<String,Object> linkProperties) throws IOException {
     try {
       MQQueue queue = queueManager.accessQueue(destination, CMQC.MQOO_INPUT_AS_Q_DEF);
       consumers.put(destination, queue);
@@ -189,7 +189,7 @@ public class MqProtocol extends Extension {
   }
 
   @Override
-  public void registerLocalLink(@NonNull @NotNull String destination) throws IOException {
+  public void registerLocalLink(@NonNull @NotNull String destination, Map<String,Object> linkProperties) throws IOException {
     try {
       MQQueue queue = queueManager.accessQueue(destination, CMQC.MQOO_OUTPUT);
       producers.put(destination, queue);
