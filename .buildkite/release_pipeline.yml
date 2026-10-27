@@ -1,0 +1,13 @@
+steps:
+  - label: ":maven: Build and Release"
+    command:
+      - export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+      - export PATH="$$JAVA_HOME/bin:$$PATH"
+      - java -version
+      - javac -version
+      - mvn -version
+      - export NVD_API_KEY=$(buildkite-agent secret get nvd_api_key)
+      - mvn clean deploy -DskipTests=true
+
+    agents:
+      queue: "java_build_queue_aws"
