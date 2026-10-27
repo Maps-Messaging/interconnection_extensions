@@ -187,7 +187,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version> <!-- Update this -->
+                <version>3.8.1</version>
                 <configuration>
                     <release>${maven.compiler.release}</release>
                 </configuration>
@@ -265,6 +265,7 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Allow JDKs greater than 1.8 to be used by maven -->
         </plugins>
     </build>
     <dependencies>
