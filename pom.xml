@@ -25,7 +25,7 @@
 
     <groupId>io.mapsmessaging</groupId>
     <artifactId>extension-project</artifactId>
-    <version>4.5.0</version>
+    <version>4.6.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <developers>
         <developer>
@@ -84,15 +84,15 @@
     <properties>
         <dependency.check.autoUpdate>true</dependency.check.autoUpdate>
         <dependency.check.dataDirectory>${user.home}/.m2/repository/org/owasp/dependency-check-data/</dependency.check.dataDirectory>
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gpg.keyname>admin@mapsmessaging.io</gpg.keyname>
 
-        <maps.core.version>4.5.0</maps.core.version>
-        <maps.logging.version>2.2.0</maps.logging.version>
-        <maps.jms_selector.version>2.1.2</maps.jms_selector.version>
-        <maps.nbts.version>2.2.3</maps.nbts.version>
-        <maps.storage.version>2.5.3</maps.storage.version>
+        <maps.core.version>4.6.0-SNAPSHOT</maps.core.version>
+        <maps.logging.version>2.3.0-SNAPSHOT</maps.logging.version>
+        <maps.jms_selector.version>2.2.0-SNAPSHOT</maps.jms_selector.version>
+        <maps.nbts.version>2.3.0-SNAPSHOT</maps.nbts.version>
+        <maps.storage.version>2.6.0-SNAPSHOT</maps.storage.version>
         <jacoco.version>0.8.14</jacoco.version>
     </properties>
     <repositories>

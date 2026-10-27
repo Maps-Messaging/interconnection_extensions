@@ -23,14 +23,14 @@
     <parent>
         <groupId>io.mapsmessaging</groupId>
         <artifactId>extension-project</artifactId>
-        <version>4.5.0</version>
+        <version>4.6.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>v2x-step-extension</artifactId>
 
     <properties>
         <nvd.api.key>${env.NVD_API_KEY}</nvd.api.key>
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gpg.keyname>matthew.buckton@mapsmessaging.io</gpg.keyname>
     </properties>
